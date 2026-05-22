@@ -4,6 +4,9 @@ import { fileURLToPath } from 'node:url'
 import { GoogleGenAI, Type } from '@google/genai'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+
+const insightCache = new Map()
+
 const predictionPaths = {
   actual: path.resolve(__dirname, '../src/data/actual_predictions.json'),
   demo: path.resolve(__dirname, '../src/data/demo_predictions.json'),
@@ -131,6 +134,11 @@ async function getRequestBody(req) {
 }
 
 export async function createInsightForCohort(cohortId, datasetKey = 'actual') {
+  const cacheKey = `${datasetKey}:${cohortId}`
+  if (insightCache.has(cacheKey)) {
+    return insightCache.get(cacheKey)
+  }
+
   const predictions = await loadPredictions(datasetKey)
   const defaultModel = predictions.metadata.default_model
   const cohort = predictions.cohorts.find((item) => item.id === cohortId)
@@ -148,14 +156,16 @@ export async function createInsightForCohort(cohortId, datasetKey = 'actual') {
 
   if (!process.env.GEMINI_API_KEY) {
     console.log('[Gemini] No GEMINI_API_KEY in environment, using fallback')
-    return makeFallbackInsight(selectedCohort, predictions.metadata)
+    const fallback = makeFallbackInsight(selectedCohort, predictions.metadata)
+    insightCache.set(cacheKey, fallback)
+    return fallback
   }
 
   try {
-    console.log(`[Gemini] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}`)
+    console.log(`[Gemini] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}`)
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
       contents: buildPrompt(selectedCohort, predictions.metadata),
       config: {
         responseMimeType: 'application/json',
@@ -167,10 +177,9 @@ export async function createInsightForCohort(cohortId, datasetKey = 'actual') {
     console.log('[Gemini] Successfully received response')
     const insight = validateInsight(JSON.parse(response.text))
 
-    return {
-      source: 'gemini',
-      ...insight,
-    }
+    const result = { source: 'gemini', ...insight }
+    insightCache.set(cacheKey, result)
+    return result
   } catch (error) {
     console.error('[Gemini] API call failed:', error.message)
     console.error('[Gemini] Full error:', error)
