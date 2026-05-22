@@ -1,0 +1,211 @@
+{
+  "metadata": {
+    "project": "VisionWatch",
+    "prediction_target": "12-month hospitalization risk for eye disease cohorts",
+    "generated_at": "2026-05-22",
+    "models_available": ["rf", "logreg", "lgbm"],
+    "default_model": "lgbm"
+  },
+
+  "cohorts": [
+    {
+      "id": "cohort_1",
+      "name": "Diabetic Retinopathy",
+      "category": "retinal",
+      "population": 241,
+
+      "disease_burden": 0.82,
+
+      "position": {
+        "x": 0.3,
+        "y": 0.1,
+        "z": 0.2
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.79,
+          "risk_level": "high",
+          "trend": [0.31, 0.38, 0.45, 0.57, 0.69, 0.79],
+          "top_features": [
+            { "feature": "ER Visits", "importance": 0.31 },
+            { "feature": "Missed Follow-Ups", "importance": 0.27 },
+            { "feature": "Diabetes Severity", "importance": 0.22 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.73,
+          "risk_level": "high",
+          "trend": [0.28, 0.34, 0.41, 0.5, 0.63, 0.73],
+          "top_features": [
+            { "feature": "Prior Admissions", "importance": 0.29 },
+            { "feature": "Age", "importance": 0.21 },
+            { "feature": "Missed Follow-Ups", "importance": 0.18 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.84,
+          "risk_level": "high",
+          "trend": [0.33, 0.4, 0.48, 0.61, 0.72, 0.84],
+          "top_features": [
+            { "feature": "Diabetes Severity", "importance": 0.36 },
+            { "feature": "ER Visits", "importance": 0.3 },
+            { "feature": "Medication Complexity", "importance": 0.19 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_2",
+      "name": "Glaucoma Progression",
+      "category": "optic_nerve",
+      "population": 183,
+
+      "disease_burden": 0.67,
+
+      "position": {
+        "x": -1.4,
+        "y": 0.5,
+        "z": 1.2
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.62,
+          "risk_level": "moderate",
+          "trend": [0.21, 0.29, 0.35, 0.44, 0.53, 0.62],
+          "top_features": [
+            { "feature": "Missed Appointments", "importance": 0.28 },
+            { "feature": "Age", "importance": 0.24 },
+            { "feature": "Medication Count", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.57,
+          "risk_level": "moderate",
+          "trend": [0.19, 0.25, 0.3, 0.39, 0.48, 0.57],
+          "top_features": [
+            { "feature": "Prior Utilization", "importance": 0.26 },
+            { "feature": "Care Gaps", "importance": 0.22 },
+            { "feature": "Age", "importance": 0.2 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.69,
+          "risk_level": "moderate",
+          "trend": [0.25, 0.32, 0.41, 0.49, 0.58, 0.69],
+          "top_features": [
+            { "feature": "Care Gaps", "importance": 0.34 },
+            { "feature": "Medication Count", "importance": 0.23 },
+            { "feature": "ER Visits", "importance": 0.2 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_3",
+      "name": "Cataract Follow-Up Risk",
+      "category": "surgical_followup",
+      "population": 312,
+
+      "disease_burden": 0.43,
+
+      "position": {
+        "x": 1.8,
+        "y": -0.3,
+        "z": -1.5
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.39,
+          "risk_level": "low",
+          "trend": [0.18, 0.2, 0.24, 0.28, 0.34, 0.39],
+          "top_features": [
+            { "feature": "Age", "importance": 0.25 },
+            { "feature": "Missed Follow-Ups", "importance": 0.2 },
+            { "feature": "Transportation Barriers", "importance": 0.17 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.34,
+          "risk_level": "low",
+          "trend": [0.16, 0.19, 0.21, 0.24, 0.3, 0.34],
+          "top_features": [
+            { "feature": "Age", "importance": 0.22 },
+            { "feature": "Prior Admissions", "importance": 0.18 },
+            { "feature": "Medication Count", "importance": 0.14 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.42,
+          "risk_level": "low",
+          "trend": [0.19, 0.22, 0.25, 0.31, 0.36, 0.42],
+          "top_features": [
+            { "feature": "Transportation Barriers", "importance": 0.27 },
+            { "feature": "Missed Follow-Ups", "importance": 0.22 },
+            { "feature": "Care Coordination", "importance": 0.18 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_4",
+      "name": "Macular Degeneration",
+      "category": "retinal",
+      "population": 154,
+
+      "disease_burden": 0.74,
+
+      "position": {
+        "x": -0.7,
+        "y": -0.2,
+        "z": 1.7
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.71,
+          "risk_level": "high",
+          "trend": [0.27, 0.35, 0.43, 0.54, 0.63, 0.71],
+          "top_features": [
+            { "feature": "Age", "importance": 0.33 },
+            { "feature": "Vision Decline Rate", "importance": 0.24 },
+            { "feature": "Prior Admissions", "importance": 0.19 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.66,
+          "risk_level": "moderate",
+          "trend": [0.24, 0.31, 0.39, 0.48, 0.57, 0.66],
+          "top_features": [
+            { "feature": "Care Gaps", "importance": 0.27 },
+            { "feature": "Age", "importance": 0.24 },
+            { "feature": "Medication Complexity", "importance": 0.16 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.78,
+          "risk_level": "high",
+          "trend": [0.29, 0.37, 0.46, 0.58, 0.68, 0.78],
+          "top_features": [
+            { "feature": "Vision Decline Rate", "importance": 0.35 },
+            { "feature": "Prior Admissions", "importance": 0.26 },
+            { "feature": "ER Visits", "importance": 0.21 }
+          ]
+        }
+      }
+    }
+  ]
+}

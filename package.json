@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "@react-three/drei": "^10.7.7",
+    "@react-three/fiber": "^9.6.1",
+    "d3": "^7.9.0",
+    "tailwindcss": "^4.3.0",
+    "three": "^0.184.0"
+  }
+}
