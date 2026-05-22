@@ -1013,7 +1013,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, average_precision_score, brier_score_loss
 
-TEST_TABLE = "hackathon.data.pophealth_pdf_test_patientlevel"  # ← update if needed
+TEST_TABLE = "hackathon.data.pophealth_pdf_holdout_patientlevel"
 
 # ── Load model artifacts ──────────────────────────────────────────────────────
 SAVE_DIR = "/dbfs/tmp/retina_risk"
