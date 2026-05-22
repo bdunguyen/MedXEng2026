@@ -198,6 +198,8 @@ Adding these group labels as model features improved the accuracy of the probabi
 
 ### 6.1 How Well Does It Rank Patients? (Discrimination)
 
+**Internal validation** (temporal split — last 15% of months):
+
 | Model | Ranking Accuracy (AUROC)* | Precision Score (AUPRC)** |
 |---|---|---|
 | Random Forest + calibration | **0.757** | 0.079 |
@@ -206,16 +208,32 @@ Adding these group labels as model features improved the accuracy of the probabi
 | Random Forest (no calibration) | 0.727 | 0.078 |
 | LightGBM | 0.716 | 0.076 |
 
-*AUROC (Area Under the ROC Curve): measures how well the model separates high-risk from low-risk patients. 0.50 = coin flip, 1.00 = perfect. Our best model at 0.757 means that when you randomly pick one patient who had an event and one who didn't, the model correctly ranks the event patient as higher risk 75.7% of the time.
+**True held-out test set** (released after model was finalized — n=3,572, event rate 20.9%):
 
-**AUPRC (Area Under the Precision-Recall Curve): relevant when events are rare. Our event rate is ~4%, so a random model scores 0.04. Our model scores 0.08 — twice as good as random.
+| Cohort | N | Event Rate | AUROC |
+|---|---|---|---|
+| Overall | 3,572 | 20.9% | **0.7179** |
+| Diabetic only | 2,973 | 21.3% | 0.7251 |
+| Glaucoma only | 327 | 15.0% | 0.6756 |
+| Glaucoma + Diabetic | 272 | 23.2% | 0.6691 |
+
+The held-out AUROC of **0.718** confirms the model generalizes. The jump in event rate (from ~4% in internal validation to 20.9% in the holdout) is expected: our internal validation set was cut from the tail of the data where 12-month outcome windows are incomplete — patients enrolled in late 2026 haven't had a full year to have an event yet. The holdout set has complete windows, so the true event rate is closer to the 16–25% seen in EDA.
+
+*AUROC (Area Under the ROC Curve): measures how well the model separates high-risk from low-risk patients. 0.50 = coin flip, 1.00 = perfect. Our holdout AUROC of 0.718 means that when you randomly pick one patient who had an event and one who didn't, the model correctly ranks the event patient as higher risk 71.8% of the time.
+
+**AUPRC (Area Under the Precision-Recall Curve): scales with event rate. On the holdout (20.9% prevalence), a random model scores 0.209. Our model scores 0.357 — 1.7× better than random.
 
 ### 6.2 Are the Risk Scores Trustworthy? (Calibration)
 
 A model can rank patients correctly but still give misleading probability scores. We checked whether a score of "10% risk" actually corresponds to about 1 in 10 patients having an event.
 
+**Internal validation:**
 - **Brier Score: 0.035** — measures how far predicted probabilities are from actual outcomes (0 = perfect, 0.25 = uninformative). Our score is excellent.
 - **Mean Calibration Error: 0.009** — on average, the model's probability estimates are less than 1 percentage point off from actual rates. This is very good.
+
+**Holdout set — known calibration shift:**
+- **Brier Score: 0.179** — higher than internal validation because the holdout event rate (20.9%) is 5× higher than what the calibrator was trained on (~4%). The model predicts a mean risk of 6.9% when the true rate is 20.9%.
+- This is a known consequence of the end-of-observation bias in the training split, not model failure. Before deployment, the isotonic calibrator should be refit on data with complete 12-month windows. The **ranking accuracy (AUROC 0.718) is unaffected by this shift** — the model still correctly identifies who is higher risk relative to whom.
 
 The calibration table below shows predicted vs. actual rates for 10 groups of patients (sorted from lowest to highest predicted risk):
 
