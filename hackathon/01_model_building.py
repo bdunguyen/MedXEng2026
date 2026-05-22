@@ -980,53 +980,31 @@ print(f"    Multi-condition    — highest-risk group; priority for outreach reg
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# CELL 20 — Save model artifacts to DBFS
-# Persists the trained RF + isotonic calibrator + feature column list so the
-# model can be reloaded without retraining (e.g. to score the held-out test set).
+# CELL 20 — Confirm model is in memory and ready to score
+# fitted[best_name] and ir are already in scope from Cells 4–6.
+# No need to serialize — just verify before running Cell 21.
 # ─────────────────────────────────────────────────────────────────────────────
-import joblib, json
-
-SAVE_DIR = "/dbfs/tmp/retina_risk"
-import os; os.makedirs(SAVE_DIR, exist_ok=True)
-
-# Save base model (RF) and isotonic calibrator separately
-joblib.dump(fitted[best_name], f"{SAVE_DIR}/base_model.pkl")
-joblib.dump(ir, f"{SAVE_DIR}/calibrator.pkl")
-
-# Save the exact feature columns the model was trained on
-with open(f"{SAVE_DIR}/feature_cols.json", "w") as fh:
-    json.dump(list(X.columns), fh)
-
-print(f"Saved to {SAVE_DIR}/")
-print(f"  base_model.pkl  — {best_name}")
-print(f"  calibrator.pkl  — isotonic regressor")
-print(f"  feature_cols.json — {len(X.columns)} features")
+print(f"Base model : {best_name}  ({type(fitted[best_name]).__name__})")
+print(f"Calibrator : {type(ir).__name__}")
+print(f"Features   : {len(X.columns)} columns")
+print("Ready to score holdout set — run Cell 21.")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # CELL 21 — Score held-out test set
-# Loads the saved model and applies it to the new validation/test table.
-# Update TEST_TABLE to match the table name released for the held-out set.
+# Uses model objects already in memory from Cells 4–6 (no serialization needed).
 # ─────────────────────────────────────────────────────────────────────────────
-import joblib, json
 import pandas as pd
 import numpy as np
 from sklearn.metrics import roc_auc_score, average_precision_score, brier_score_loss
 
 TEST_TABLE = "hackathon.data.pophealth_pdf_holdout_patientlevel"
 
-# ── Load model artifacts ──────────────────────────────────────────────────────
-SAVE_DIR = "/dbfs/tmp/retina_risk"
-base_model  = joblib.load(f"{SAVE_DIR}/base_model.pkl")
-calibrator  = joblib.load(f"{SAVE_DIR}/calibrator.pkl")
-with open(f"{SAVE_DIR}/feature_cols.json") as fh:
-    feature_cols = json.load(fh)
-
-# ── Load test data with same cohort filter ────────────────────────────────────
+# ── Load holdout data with same cohort filter as training ─────────────────────
 df_test = spark.sql(f"""
     SELECT *,
-        cms_ccw_glaucoma_36                          AS flag_glaucoma,
-        cms_ccw_diabetes_36                          AS flag_diabetes,
+        cms_ccw_glaucoma_36 AS flag_glaucoma,
+        cms_ccw_diabetes_36 AS flag_diabetes,
         CASE WHEN cms_ccw_glaucoma_36 = 1
               AND cms_ccw_diabetes_36 = 1 THEN 1 ELSE 0 END AS flag_glaucoma_diabetic
     FROM {TEST_TABLE}
@@ -1034,7 +1012,7 @@ df_test = spark.sql(f"""
       AND (cms_ccw_glaucoma_36 = 1 OR cms_ccw_diabetes_36 = 1)
 """).toPandas()
 
-print(f"Test set: {len(df_test):,} rows | event rate: {df_test['Outcome'].mean():.3f}")
+print(f"Holdout set: {len(df_test):,} rows | event rate: {df_test['Outcome'].mean():.3f}")
 
 # ── Feature engineering — must match Cell 2 exactly ──────────────────────────
 df_test[INDEX_MONTH] = pd.to_datetime(df_test[INDEX_MONTH].astype(str), format="%Y%m")
@@ -1043,36 +1021,35 @@ df_enc = pd.get_dummies(df_test, columns=CAT_COLS, drop_first=True, dummy_na=Tru
 META_DROP = [c for c in META_COLS if c in df_enc.columns]
 X_test = df_enc.drop(columns=META_DROP)
 
-# Align to training columns: add missing as 0, drop extras
-X_test = X_test.reindex(columns=feature_cols, fill_value=0)
+# Align columns to training set: missing cols → 0, extra cols → dropped
+X_test = X_test.reindex(columns=X.columns, fill_value=0)
 X_test = X_test.fillna(X_test.median(numeric_only=True)).astype("float32")
 
 print(f"Feature matrix: {X_test.shape}")
 
 # ── Score ─────────────────────────────────────────────────────────────────────
-p_uncal = base_model.predict_proba(X_test)[:, 1]
-p_cal   = calibrator.predict(p_uncal)
+p_uncal    = fitted[best_name].predict_proba(X_test)[:, 1]
+p_holdout  = ir.predict(p_uncal)
+y_holdout  = df_test["Outcome"].astype(int).values
 
-y_test  = df_test["Outcome"].astype(int).values
-
-auroc  = roc_auc_score(y_test, p_cal)
-auprc  = average_precision_score(y_test, p_cal)
-brier  = brier_score_loss(y_test, p_cal)
+auroc = roc_auc_score(y_holdout, p_holdout)
+auprc = average_precision_score(y_holdout, p_holdout)
+brier = brier_score_loss(y_holdout, p_holdout)
 
 print()
 print("=" * 50)
 print("  HELD-OUT TEST SET RESULTS")
 print("=" * 50)
-print(f"  N              : {len(y_test):,}")
-print(f"  Event rate     : {y_test.mean():.3f}")
+print(f"  N              : {len(y_holdout):,}")
+print(f"  Event rate     : {y_holdout.mean():.3f}")
 print(f"  AUROC          : {auroc:.4f}")
 print(f"  AUPRC          : {auprc:.4f}")
 print(f"  Brier score    : {brier:.4f}")
-print(f"  Mean pred risk : {p_cal.mean():.4f}")
+print(f"  Mean pred risk : {p_holdout.mean():.4f}")
 print("=" * 50)
 
 # ── Subgroup breakdown ────────────────────────────────────────────────────────
-meta_test = df_test[META_COLS].copy()
+meta_test = df_test[["flag_glaucoma", "flag_diabetes", "flag_glaucoma_diabetic"]].copy()
 subgroups_test = {
     "Glaucoma only":     (meta_test["flag_glaucoma"] == 1) & (meta_test["flag_diabetes"] == 0),
     "Diabetic only":     (meta_test["flag_diabetes"] == 1) & (meta_test["flag_glaucoma"] == 0),
@@ -1082,10 +1059,10 @@ print(f"\n  {'Subgroup':<22} {'N':>6} {'Events':>7} {'AUROC':>8}")
 print(f"  {'-'*46}")
 for sg, mask in subgroups_test.items():
     m = mask.values
-    n, ev = m.sum(), y_test[m].sum()
+    n, ev = m.sum(), y_holdout[m].sum()
     if ev < 2:
         print(f"  {sg:<22} {n:>6} {ev:>7}   (too few events)")
         continue
-    sg_auroc = roc_auc_score(y_test[m], p_cal[m])
+    sg_auroc = roc_auc_score(y_holdout[m], p_holdout[m])
     print(f"  {sg:<22} {n:>6} {ev:>7} {sg_auroc:>8.4f}")
 print(SEP3)
