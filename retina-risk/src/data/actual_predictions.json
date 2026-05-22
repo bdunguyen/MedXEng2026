@@ -15,7 +15,7 @@
   "cohorts": [
     {
       "id": "cohort_multi_condition",
-      "name": "Multi-Condition",
+      "name": "Multi-Condition (CKD + HF + Cancer)",
       "category": "complex",
       "population": 338,
       "disease_burden": 0.81,
