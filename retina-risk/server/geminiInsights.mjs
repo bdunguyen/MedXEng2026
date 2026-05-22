@@ -162,10 +162,10 @@ export async function createInsightForCohort(cohortId, datasetKey = 'actual') {
   }
 
   try {
-    console.log(`[Gemini] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-1.5-flash'}`)
+    console.log(`[Gemini] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}`)
     const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
     const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-1.5-flash',
+      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
       contents: buildPrompt(selectedCohort, predictions.metadata),
       config: {
         responseMimeType: 'application/json',
