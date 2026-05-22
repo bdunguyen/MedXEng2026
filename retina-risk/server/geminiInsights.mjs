@@ -154,46 +154,9 @@ export async function createInsightForCohort(cohortId, datasetKey = 'actual') {
     model: cohort.models[defaultModel],
   }
 
-  if (!process.env.GEMINI_API_KEY) {
-    console.log('[Gemini] No GEMINI_API_KEY in environment, using fallback')
-    const fallback = makeFallbackInsight(selectedCohort, predictions.metadata)
-    insightCache.set(cacheKey, fallback)
-    return fallback
-  }
-
-  try {
-    console.log(`[Gemini] Initializing with model: ${process.env.GEMINI_MODEL || 'gemini-2.0-flash'}`)
-    const ai = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY })
-    const response = await ai.models.generateContent({
-      model: process.env.GEMINI_MODEL || 'gemini-2.0-flash',
-      contents: buildPrompt(selectedCohort, predictions.metadata),
-      config: {
-        responseMimeType: 'application/json',
-        responseSchema: insightSchema,
-        systemInstruction:
-          'You summarize machine learning prediction data for an ophthalmology dashboard. Keep statements concise, cautious, and non-diagnostic.',
-      },
-    })
-    console.log('[Gemini] Successfully received response')
-    const insight = validateInsight(JSON.parse(response.text))
-
-    const result = { source: 'gemini', ...insight }
-    insightCache.set(cacheKey, result)
-    return result
-  } catch (error) {
-    console.error('[Gemini] API call failed:', error.message)
-    console.error('[Gemini] Full error:', error)
-    const fallback = makeFallbackInsight(selectedCohort, predictions.metadata)
-
-    return {
-      ...fallback,
-      caveats: [
-        'Gemini was configured but the request failed, so this insight used the local fallback.',
-        error.message?.includes('quota') ? 'Gemini reported a quota or rate-limit issue.' : `Gemini did not return a usable response: ${error.message}`,
-        ...fallback.caveats.slice(1),
-      ],
-    }
-  }
+  const fallback = makeFallbackInsight(selectedCohort, predictions.metadata)
+  insightCache.set(cacheKey, fallback)
+  return fallback
 }
 
 export async function handleInsightsRequest(req, res) {
