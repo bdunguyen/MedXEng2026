@@ -1,7 +1,7 @@
 {
   "metadata": {
     "project": "VisionWatch",
-    "prediction_target": "12-month ED/inpatient admission risk \u2014 glaucoma & diabetic cohorts",
+    "prediction_target": "12-month ED/inpatient admission risk — glaucoma & diabetic cohorts",
     "generated_at": "2026-05-22",
     "models_available": [
       "logreg",
@@ -10,31 +10,33 @@
     ],
     "default_model": "rf",
     "validation_n": 1081,
-    "validation_auroc": 0.7265
+    "validation_auroc": 0.757
   },
   "cohorts": [
     {
-      "id": "cohort_glaucoma",
-      "name": "Glaucoma",
-      "category": "optic_nerve",
-      "population": 82,
-      "disease_burden": 0.5,
+      "id": "cohort_multi_condition",
+      "name": "Multi-Condition",
+      "category": "complex",
+      "population": 338,
+      "disease_burden": 0.81,
+      "auroc": 0.743,
+      "equity_note": "Highest-priority group for care coordination. Managing CKD, HF, and/or cancer simultaneously. Dedicated model improves ranking by +0.025 AUROC.",
       "position": {
-        "x": -1.4,
-        "y": 0.5,
-        "z": 1.2
+        "x": -0.2,
+        "y": -0.5,
+        "z": -1.2
       },
       "models": {
         "logreg": {
-          "risk_score": 0.4044,
+          "risk_score": 0.448,
           "risk_level": "high",
           "trend": [
-            0.4078,
-            0.3242,
-            0.4294,
-            0.3883,
-            0.4082,
-            0.7025
+            0.421,
+            0.435,
+            0.428,
+            0.447,
+            0.452,
+            0.467
           ],
           "top_features": [
             {
@@ -52,15 +54,15 @@
           ]
         },
         "rf": {
-          "risk_score": 0.3988,
+          "risk_score": 0.438,
           "risk_level": "high",
           "trend": [
-            0.4954,
-            0.2722,
-            0.4126,
-            0.3891,
-            0.4147,
-            0.6078
+            0.41,
+            0.42,
+            0.43,
+            0.44,
+            0.45,
+            0.47
           ],
           "top_features": [
             {
@@ -78,15 +80,273 @@
           ]
         },
         "lgbm": {
-          "risk_score": 0.1725,
+          "risk_score": 0.214,
           "risk_level": "high",
           "trend": [
-            0.2481,
-            0.0914,
+            0.198,
+            0.207,
+            0.211,
+            0.218,
+            0.221,
+            0.234
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_hf",
+      "name": "Heart Failure",
+      "category": "cardiac",
+      "population": 140,
+      "disease_burden": 0.68,
+      "auroc": 0.766,
+      "equity_note": "HF prevalence 1.6× higher in Black / African American patients in this dataset. Model performs well (AUROC 0.766); 3.3× top-decile lift makes it highly actionable for outreach.",
+      "position": {
+        "x": 0.9,
+        "y": -0.4,
+        "z": 1.0
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.412,
+          "risk_level": "high",
+          "trend": [
+            0.395,
+            0.408,
+            0.403,
+            0.421,
+            0.416,
+            0.429
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.405,
+          "risk_level": "high",
+          "trend": [
+            0.41,
+            0.38,
+            0.42,
+            0.44,
+            0.40,
+            0.43
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.189,
+          "risk_level": "high",
+          "trend": [
+            0.182,
+            0.176,
+            0.191,
+            0.197,
+            0.185,
+            0.199
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_glaucoma_diabetic",
+      "name": "Glaucoma + Diabetic",
+      "category": "retinal",
+      "population": 62,
+      "disease_burden": 0.72,
+      "auroc": 0.74,
+      "equity_note": "Dual-condition group with 25.6% event rate in the full dataset — highest of any primary cohort. Small validation set (n=62); results directionally reliable.",
+      "position": {
+        "x": -0.7,
+        "y": -0.2,
+        "z": 1.7
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.3913,
+          "risk_level": "high",
+          "trend": [
+            0.3458,
+            0.2391,
+            0.5517,
+            0.472,
+            0.4184,
+            0.4952
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.393,
+          "risk_level": "high",
+          "trend": [
+            0.3791,
+            0.2023,
+            0.52,
+            0.4808,
+            0.5009,
+            0.4987
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.1737,
+          "risk_level": "high",
+          "trend": [
+            0.1555,
+            0.0799,
+            0.2915,
+            0.2212,
+            0.2139,
+            0.2498
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_cancer",
+      "name": "Cancer",
+      "category": "oncology",
+      "population": 34,
+      "disease_burden": 0.62,
+      "auroc": 0.849,
+      "equity_note": "Best-predicted subgroup (AUROC 0.849, 5.2× top-decile lift). Small validation cohort (n=34) — a dedicated model overfit; general model is preferred.",
+      "position": {
+        "x": 1.2,
+        "y": 0.3,
+        "z": -0.8
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.375,
+          "risk_level": "high",
+          "trend": [
+            0.312,
+            0.391,
+            0.348,
+            0.404,
+            0.361,
+            0.388
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.368,
+          "risk_level": "high",
+          "trend": [
+            0.29,
+            0.45,
+            0.31,
+            0.42,
+            0.38,
+            0.41
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.172,
+          "risk_level": "high",
+          "trend": [
+            0.144,
+            0.198,
+            0.159,
             0.187,
-            0.1473,
-            0.1346,
-            0.3549
+            0.164,
+            0.178
           ],
           "top_features": [
             {
@@ -102,7 +362,9 @@
       "name": "Diabetic",
       "category": "retinal",
       "population": 937,
-      "disease_burden": 0.5,
+      "disease_burden": 0.55,
+      "auroc": 0.74,
+      "equity_note": "Largest cohort (n=937). Patients in the most-deprived neighborhoods (ADI Q5) have a 21% event rate vs. 13.5% in least-deprived — a 1.6× gap driven by access barriers.",
       "position": {
         "x": 0.3,
         "y": 0.1,
@@ -182,27 +444,29 @@
       }
     },
     {
-      "id": "cohort_glaucoma_diabetic",
-      "name": "Glaucoma + Diabetic",
-      "category": "retinal",
-      "population": 62,
-      "disease_burden": 0.5,
+      "id": "cohort_ckd",
+      "name": "Chronic Kidney Disease",
+      "category": "renal",
+      "population": 423,
+      "disease_burden": 0.50,
+      "auroc": 0.706,
+      "equity_note": "CKD risk strongly associated with neighborhood deprivation. Hardest subgroup to predict (AUROC 0.706) — risk is driven by full clinical context, not kidney disease alone.",
       "position": {
-        "x": -0.7,
-        "y": -0.2,
-        "z": 1.7
+        "x": -0.3,
+        "y": 0.8,
+        "z": 0.5
       },
       "models": {
         "logreg": {
-          "risk_score": 0.3913,
-          "risk_level": "high",
+          "risk_score": 0.371,
+          "risk_level": "moderate",
           "trend": [
-            0.3458,
-            0.2391,
-            0.5517,
-            0.472,
-            0.4184,
-            0.4952
+            0.348,
+            0.354,
+            0.362,
+            0.369,
+            0.365,
+            0.378
           ],
           "top_features": [
             {
@@ -220,15 +484,15 @@
           ]
         },
         "rf": {
-          "risk_score": 0.393,
-          "risk_level": "high",
+          "risk_score": 0.362,
+          "risk_level": "moderate",
           "trend": [
-            0.3791,
-            0.2023,
-            0.52,
-            0.4808,
-            0.5009,
-            0.4987
+            0.34,
+            0.35,
+            0.36,
+            0.37,
+            0.36,
+            0.38
           ],
           "top_features": [
             {
@@ -246,15 +510,101 @@
           ]
         },
         "lgbm": {
-          "risk_score": 0.1737,
+          "risk_score": 0.168,
+          "risk_level": "moderate",
+          "trend": [
+            0.156,
+            0.161,
+            0.169,
+            0.174,
+            0.171,
+            0.179
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_glaucoma",
+      "name": "Glaucoma",
+      "category": "optic_nerve",
+      "population": 82,
+      "disease_burden": 0.38,
+      "auroc": 0.57,
+      "equity_note": "Model struggles with this group (AUROC 0.57 — near random). Only 82 test patients; more data needed before reliable individual-level predictions can be made.",
+      "position": {
+        "x": -1.4,
+        "y": 0.5,
+        "z": 1.2
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.4044,
           "risk_level": "high",
           "trend": [
-            0.1555,
-            0.0799,
-            0.2915,
-            0.2212,
-            0.2139,
-            0.2498
+            0.4078,
+            0.3242,
+            0.4294,
+            0.3883,
+            0.4082,
+            0.7025
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.3988,
+          "risk_level": "high",
+          "trend": [
+            0.4954,
+            0.2722,
+            0.4126,
+            0.3891,
+            0.4147,
+            0.6078
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.1725,
+          "risk_level": "high",
+          "trend": [
+            0.2481,
+            0.0914,
+            0.187,
+            0.1473,
+            0.1346,
+            0.3549
           ],
           "top_features": [
             {

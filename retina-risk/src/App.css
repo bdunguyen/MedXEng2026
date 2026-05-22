@@ -140,6 +140,35 @@
   line-height: 1.5;
 }
 
+.risk-interpretation {
+  margin-top: 4px !important;
+  color: #8ba8a5 !important;
+  font-size: 12px !important;
+}
+
+.equity-note {
+  display: grid;
+  gap: 6px;
+  padding: 10px 12px;
+  border: 1px solid rgba(251, 191, 36, 0.2);
+  border-radius: 8px;
+  background: rgba(251, 191, 36, 0.06);
+}
+
+.equity-note h3 {
+  margin: 0;
+  color: #fbbf24;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+}
+
+.equity-note p {
+  margin: 0;
+  color: #c9b882;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
 .risk-meter {
   height: 8px;
   overflow: hidden;

@@ -841,14 +841,14 @@ predictions = {
 json_str = json.dumps(predictions, indent=2)
 
 # ── Write to frontend data file ───────────────────────────────────────────────
-OUT_PATH = "/home/leo/MedXEng2026/retina-risk/src/data/predictions.json"
+OUT_PATH = "/home/leo/MedXEng2026/retina-risk/src/data/actual_predictions.json"
 try:
     with open(OUT_PATH, "w") as f:
         f.write(json_str)
     print(f"Written to {OUT_PATH}")
 except Exception as e:
     print(f"Could not write to local path ({e})")
-    print("Copy the JSON below into retina-risk/src/data/predictions.json manually:")
+    print("Copy the JSON below into retina-risk/src/data/actual_predictions.json manually:")
     print()
     print(json_str)
 

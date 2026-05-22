@@ -78,6 +78,12 @@ export default function SidePanel({
             {formatPercent(selectedCohort.model.risk_score)} {selectedCohort.model.risk_level} risk
             · {selectedCohort.population} patients
           </p>
+          <p className="risk-interpretation">
+            ~1 in {Math.round(1 / selectedCohort.model.risk_score)} patients flagged for acute care
+            {selectedCohort.auroc != null && (
+              <> · model accuracy {selectedCohort.auroc.toFixed(3)} AUROC</>
+            )}
+          </p>
         </div>
       </div>
       <div className="risk-meter" aria-label={`${selectedCohort.name} risk score`}>
@@ -98,6 +104,12 @@ export default function SidePanel({
           <p>Color uses a distinct cohort hue, with model risk shifting the tint and intensity.</p>
         </div>
       </div>
+      {selectedCohort.equity_note && (
+        <div className="equity-note" aria-label={`${selectedCohort.name} equity context`}>
+          <h3>Equity context</h3>
+          <p>{selectedCohort.equity_note}</p>
+        </div>
+      )}
       <div className="feature-list">
         <h3>Top model features</h3>
         {selectedCohort.model.top_features.map((item) => (
