@@ -76,8 +76,7 @@ export default function SidePanel({
         <p>{metadata.project}</p>
         <p>{metadata.prediction_target}</p>
         <p>
-          model::{metadata.default_model} · validation n::{metadata.validation_n ?? 'test'} · auroc::
-          {metadata.validation_auroc ?? 'n/a'}
+          {metadata.default_model.toUpperCase()} model · n={metadata.validation_n?.toLocaleString() ?? 'n/a'} · AUROC {metadata.validation_auroc ?? 'n/a'}
         </p>
       </div>
       <div className="finding-readout cohort-readout">

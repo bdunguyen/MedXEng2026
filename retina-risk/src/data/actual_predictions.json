@@ -1,7 +1,7 @@
 {
   "metadata": {
     "project": "VisionWatch",
-    "prediction_target": "12-month ED/inpatient admission risk — glaucoma & diabetic cohorts · holdout n=3,572 · event rate 20.9%",
+    "prediction_target": "12-month ED/inpatient admission risk — glaucoma & diabetic cohorts",
     "generated_at": "2026-05-22",
     "models_available": [
       "logreg",
