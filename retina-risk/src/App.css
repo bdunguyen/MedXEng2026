@@ -85,7 +85,7 @@
 
 .dataset-switch {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   gap: 4px;
   padding: 4px;
   border: 1px solid rgba(232, 243, 242, 0.12);
@@ -576,7 +576,7 @@
   }
 
   .trend-stats {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
   }
 }
 

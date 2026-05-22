@@ -1,0 +1,100 @@
+{
+  "metadata": {
+    "project": "VisionWatch",
+    "prediction_target": "Patient archetypes — KMeans clustering (k=4) on glaucoma & diabetic cohort",
+    "generated_at": "2026-05-22",
+    "models_available": ["rf"],
+    "default_model": "rf",
+    "validation_n": 13074,
+    "validation_auroc": null
+  },
+  "cohorts": [
+    {
+      "id": "cluster_2",
+      "name": "High-Acuity Complex",
+      "category": "cluster",
+      "population": 3815,
+      "disease_burden": 0.88,
+      "auroc": null,
+      "equity_note": "Nearly 15 clinic visits/year and 27 chronic conditions on average. 30% have depression. Already visible to the health system — the intervention needed is better care coordination, not detection.",
+      "position": { "x": 0.2, "y": -0.4, "z": -0.9 },
+      "models": {
+        "rf": {
+          "risk_score": 0.32,
+          "risk_level": "critical",
+          "trend": [0.31, 0.32, 0.33, 0.31, 0.32, 0.32],
+          "top_features": [
+            { "feature": "Clinic visits / year (avg 14.8)", "importance": 0.42 },
+            { "feature": "Chronic conditions (avg 27)", "importance": 0.38 },
+            { "feature": "Depression prevalence (30%)", "importance": 0.20 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cluster_3",
+      "name": "High-Deprivation, Low-Access",
+      "category": "cluster",
+      "population": 3443,
+      "disease_burden": 0.82,
+      "auroc": null,
+      "equity_note": "Most deprived neighborhoods (ADI Q5) with many chronic conditions but only 2.2 clinic visits/year. High need, low system contact — at risk due to access barriers, not lack of disease burden. Highest ROI for proactive outreach.",
+      "position": { "x": -0.9, "y": 0.3, "z": 0.7 },
+      "models": {
+        "rf": {
+          "risk_score": 0.30,
+          "risk_level": "high",
+          "trend": [0.25, 0.27, 0.27, 0.29, 0.29, 0.31],
+          "top_features": [
+            { "feature": "Area Deprivation Index (highest quintile)", "importance": 0.48 },
+            { "feature": "Clinic visits / year (avg 2.2)", "importance": 0.35 },
+            { "feature": "Chronic conditions (many)", "importance": 0.17 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cluster_1",
+      "name": "Well-Resourced",
+      "category": "cluster",
+      "population": 5276,
+      "disease_burden": 0.35,
+      "auroc": null,
+      "equity_note": "Least deprived neighborhoods, good healthcare access, moderate chronic conditions. Stable risk trajectory. Lower priority for outreach — resources better directed at Clusters 2 and 3.",
+      "position": { "x": 1.2, "y": 0.5, "z": 0.3 },
+      "models": {
+        "rf": {
+          "risk_score": 0.08,
+          "risk_level": "lower",
+          "trend": [0.08, 0.07, 0.08, 0.08, 0.09, 0.08],
+          "top_features": [
+            { "feature": "Low neighborhood deprivation (ADI Q1)", "importance": 0.45 },
+            { "feature": "Healthcare access (good)", "importance": 0.35 },
+            { "feature": "Moderate chronic conditions", "importance": 0.20 }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cluster_0",
+      "name": "Mixed / Atypical",
+      "category": "cluster",
+      "population": 540,
+      "disease_burden": 0.22,
+      "auroc": null,
+      "equity_note": "Small, heterogeneous group (4% of cohort) with atypical profiles that don't fit the other archetypes. Low average risk but high internal variability — may warrant case-by-case clinical review.",
+      "position": { "x": 0.5, "y": -1.0, "z": 1.4 },
+      "models": {
+        "rf": {
+          "risk_score": 0.05,
+          "risk_level": "lower",
+          "trend": [0.06, 0.04, 0.07, 0.03, 0.06, 0.05],
+          "top_features": [
+            { "feature": "Heterogeneous profile", "importance": 0.70 },
+            { "feature": "Atypical care patterns", "importance": 0.30 }
+          ]
+        }
+      }
+    }
+  ]
+}

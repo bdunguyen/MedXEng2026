@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import actualPredictions from '../data/actual_predictions.json'
+import clusterPredictions from '../data/cluster_predictions.json'
 import demoPredictions from '../data/demo_predictions.json'
 import {
   createRetinaNode,
@@ -16,8 +17,12 @@ import TrendChart from './TrendChart'
 
 const datasets = {
   actual: {
-    label: 'Actual',
+    label: 'Predictions',
     predictions: actualPredictions,
+  },
+  clusters: {
+    label: 'Clusters',
+    predictions: clusterPredictions,
   },
   demo: {
     label: 'Demo',
