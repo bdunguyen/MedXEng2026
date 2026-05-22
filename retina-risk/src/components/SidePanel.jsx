@@ -31,6 +31,7 @@ export default function SidePanel({
   onDatasetChange,
   onSelectCohort,
   onShowChart,
+  onShowGlossary,
   onShowReport,
   selectedCohort,
 }) {
@@ -49,9 +50,14 @@ export default function SidePanel({
       <div className="project-signature" aria-label="MedXEng2026 Britney and Leo">
         <span>MedXEng2026</span>
         <span>Britney &amp; Leo</span>
-        <button className="report-btn" onClick={onShowReport} type="button">
-          Report
-        </button>
+        <div className="signature-btns">
+          <button className="report-btn" onClick={onShowReport} type="button">
+            Report
+          </button>
+          <button className="report-btn" onClick={onShowGlossary} type="button">
+            Glossary
+          </button>
+        </div>
       </div>
       <div className="dataset-switch" aria-label="Prediction dataset switch">
         {Object.entries(datasetOptions).map(([key, dataset]) => (

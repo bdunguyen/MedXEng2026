@@ -9,6 +9,7 @@ import {
   getRetinaNodeColor,
   updateRetinaNode,
 } from './Node'
+import GlossaryOverlay from './GlossaryOverlay'
 import ReportOverlay from './ReportOverlay'
 import SidePanel from './SidePanel'
 import TrendChart from './TrendChart'
@@ -59,6 +60,7 @@ export default function RetinaScene() {
   const [selectedCohort, setSelectedCohort] = useState(cohorts[0])
   const [chartCohort, setChartCohort] = useState(null)
   const [showReport, setShowReport] = useState(false)
+  const [showGlossary, setShowGlossary] = useState(false)
   const activeCohort = cohorts.find((cohort) => cohort.id === selectedCohort?.id) ?? cohorts[0]
 
   function handleDatasetChange(nextDatasetKey) {
@@ -214,11 +216,13 @@ export default function RetinaScene() {
         onDatasetChange={handleDatasetChange}
         onSelectCohort={setSelectedCohort}
         onShowChart={setChartCohort}
+        onShowGlossary={() => setShowGlossary(true)}
         onShowReport={() => setShowReport(true)}
         selectedCohort={activeCohort}
       />
       <TrendChart cohort={chartCohort} datasetKey={datasetKey} onClose={() => setChartCohort(null)} />
       {showReport && <ReportOverlay onClose={() => setShowReport(false)} />}
+      {showGlossary && <GlossaryOverlay onClose={() => setShowGlossary(false)} />}
     </section>
   )
 }

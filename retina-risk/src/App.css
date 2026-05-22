@@ -56,6 +56,12 @@
   font-weight: 500;
 }
 
+.signature-btns {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
 .report-btn {
   margin-top: 4px;
   padding: 5px 12px;
@@ -703,3 +709,27 @@
 }
 
 .report-body li { margin-bottom: 0.3em; }
+
+.glossary-body { display: grid; gap: 0; }
+
+.glossary-entry {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(232, 243, 242, 0.06);
+}
+
+.glossary-entry:last-child { border-bottom: none; }
+
+.glossary-entry strong {
+  display: block;
+  margin-bottom: 4px;
+  color: #5eead4;
+  font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
+  font-size: 13px;
+}
+
+.glossary-entry p {
+  margin: 0;
+  color: #b6c9c7;
+  font-size: 13px;
+  line-height: 1.6;
+}
