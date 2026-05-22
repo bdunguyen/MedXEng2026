@@ -10,6 +10,7 @@ const insightCache = new Map()
 const predictionPaths = {
   actual: path.resolve(__dirname, '../src/data/actual_predictions.json'),
   demo: path.resolve(__dirname, '../src/data/demo_predictions.json'),
+  clusters: path.resolve(__dirname, '../src/data/cluster_predictions.json'),
 }
 
 const insightSchema = {
