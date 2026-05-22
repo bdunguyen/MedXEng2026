@@ -16,8 +16,9 @@
 
 body {
   min-width: 320px;
-  min-height: 100svh;
+  height: 100svh;
   margin: 0;
+  overflow: hidden;
 }
 
 button,
@@ -28,5 +29,6 @@ select {
 }
 
 #root {
-  min-height: 100svh;
+  height: 100svh;
+  overflow: hidden;
 }

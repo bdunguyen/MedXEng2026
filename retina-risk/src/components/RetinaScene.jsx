@@ -1,42 +1,71 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
-import predictions from '../data/predictions.json'
-import { createRetinaNode, createRetinaNodeConnections, updateRetinaNode } from './Node'
+import actualPredictions from '../data/actual_predictions.json'
+import demoPredictions from '../data/demo_predictions.json'
+import {
+  createRetinaNode,
+  createRetinaNodeConnections,
+  getRetinaNodeColor,
+  updateRetinaNode,
+} from './Node'
+import SidePanel from './SidePanel'
 import TrendChart from './TrendChart'
 
-const defaultModel = predictions.metadata.default_model
-
-const riskColors = {
-  high: '#ef4444',
-  moderate: '#f59e0b',
-  low: '#22c55e',
+const datasets = {
+  actual: {
+    label: 'Actual',
+    predictions: actualPredictions,
+  },
+  demo: {
+    label: 'Demo',
+    predictions: demoPredictions,
+  },
 }
 
-const burdenValues = predictions.cohorts.map((cohort) => cohort.disease_burden)
-const burdenMin = Math.min(...burdenValues)
-const burdenMax = Math.max(...burdenValues)
-const burdenRange = burdenMax - burdenMin || 1
+function buildCohorts(predictions) {
+  const defaultModel = predictions.metadata.default_model
+  const burdenValues = predictions.cohorts.map((cohort) => cohort.disease_burden)
+  const burdenMin = Math.min(...burdenValues)
+  const burdenMax = Math.max(...burdenValues)
+  const burdenRange = burdenMax - burdenMin
+  const shouldNormalizeByRisk = burdenRange === 0
+  const riskValues = predictions.cohorts.map((cohort) => cohort.models[defaultModel].risk_score)
+  const riskMin = Math.min(...riskValues)
+  const riskMax = Math.max(...riskValues)
+  const riskRange = riskMax - riskMin || 1
 
-const cohorts = predictions.cohorts.map((cohort) => {
-  const model = cohort.models[defaultModel]
+  return predictions.cohorts.map((cohort) => {
+    const model = cohort.models[defaultModel]
+    const enrichedCohort = { ...cohort, model }
 
-  return {
-    ...cohort,
-    model,
-    color: riskColors[model.risk_level] ?? '#38bdf8',
-    normalized_disease_burden: (cohort.disease_burden - burdenMin) / burdenRange,
-  }
-})
-
-function formatPercent(value) {
-  return `${Math.round(value * 100)}%`
+    return {
+      ...enrichedCohort,
+      color: `#${getRetinaNodeColor(enrichedCohort).getHexString()}`,
+      depth_basis: shouldNormalizeByRisk ? 'risk score' : 'disease burden',
+      normalized_disease_burden: shouldNormalizeByRisk
+        ? (model.risk_score - riskMin) / riskRange
+        : (cohort.disease_burden - burdenMin) / burdenRange,
+    }
+  })
 }
 
 export default function RetinaScene() {
   const mountRef = useRef(null)
+  const [datasetKey, setDatasetKey] = useState('actual')
+  const predictions = datasets[datasetKey].predictions
+  const cohorts = useMemo(() => buildCohorts(predictions), [predictions])
   const [selectedCohort, setSelectedCohort] = useState(cohorts[0])
   const [chartCohort, setChartCohort] = useState(null)
+  const activeCohort = cohorts.find((cohort) => cohort.id === selectedCohort?.id) ?? cohorts[0]
+
+  function handleDatasetChange(nextDatasetKey) {
+    const nextCohorts = buildCohorts(datasets[nextDatasetKey].predictions)
+
+    setDatasetKey(nextDatasetKey)
+    setSelectedCohort(nextCohorts[0])
+    setChartCohort(null)
+  }
 
   useEffect(() => {
     const mount = mountRef.current
@@ -170,57 +199,22 @@ export default function RetinaScene() {
         }
       })
     }
-  }, [])
+  }, [cohorts])
 
   return (
     <section className="retina-workspace">
       <div className="retina-scene" ref={mountRef} aria-label="Interactive 3D retina model" />
-      <aside className="retina-panel">
-        <div className="project-signature" aria-label="MedXEng2026 Britney and Leo">
-          <span>MedXEng2026</span>
-          <span>Britney &amp; Leo</span>
-        </div>
-        <div className="prediction-meta">
-          <p>{predictions.metadata.project}</p>
-          <p>{predictions.metadata.prediction_target}</p>
-        </div>
-        <div className="finding-readout cohort-readout">
-          <span style={{ backgroundColor: selectedCohort.color }} />
-          <div>
-            <h2>{selectedCohort.name}</h2>
-            <p>
-              {formatPercent(selectedCohort.model.risk_score)} {selectedCohort.model.risk_level}{' '}
-              risk · {selectedCohort.population} patients
-            </p>
-          </div>
-        </div>
-        <div className="risk-meter" aria-label={`${selectedCohort.name} risk score`}>
-          <div style={{ width: formatPercent(selectedCohort.model.risk_score) }} />
-        </div>
-        <div className="feature-list">
-          <h3>Top features</h3>
-          {selectedCohort.model.top_features.map((item) => (
-            <div className="feature-row" key={item.feature}>
-              <span>{item.feature}</span>
-              <strong>{formatPercent(item.importance)}</strong>
-            </div>
-          ))}
-        </div>
-        <div className="cohort-list" aria-label="Prediction cohorts">
-          {cohorts.map((cohort) => (
-            <button
-              className={cohort.id === selectedCohort.id ? 'active' : ''}
-              key={cohort.id}
-              onClick={() => setSelectedCohort(cohort)}
-              type="button"
-            >
-              <span style={{ backgroundColor: cohort.color }} />
-              {cohort.name}
-            </button>
-          ))}
-        </div>
-      </aside>
-      <TrendChart cohort={chartCohort} onClose={() => setChartCohort(null)} />
+      <SidePanel
+        cohorts={cohorts}
+        datasetKey={datasetKey}
+        datasetOptions={datasets}
+        metadata={predictions.metadata}
+        onDatasetChange={handleDatasetChange}
+        onSelectCohort={setSelectedCohort}
+        onShowChart={setChartCohort}
+        selectedCohort={activeCohort}
+      />
+      <TrendChart cohort={chartCohort} datasetKey={datasetKey} onClose={() => setChartCohort(null)} />
     </section>
   )
 }

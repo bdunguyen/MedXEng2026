@@ -12,21 +12,32 @@ function getNodeSeed(id) {
 }
 
 function getRiskColor(riskScore, seed = 0) {
-  const low = new THREE.Color('#00d8ff')
-  const mid = new THREE.Color('#ffd166')
-  const high = new THREE.Color('#ff2e88')
-  const color = new THREE.Color()
-  const hueOffset = ((seed % 7) - 3) * 0.018
+  const identityPalette = [
+    '#00d8ff',
+    '#7c3cff',
+    '#ff2e88',
+    '#f97316',
+    '#22c55e',
+    '#facc15',
+    '#38bdf8',
+    '#e879f9',
+    '#14b8a6',
+    '#ef4444',
+  ]
+  const lowRiskTint = new THREE.Color('#72f6ff')
+  const highRiskTint = new THREE.Color('#ff3864')
+  const color = new THREE.Color(identityPalette[seed % identityPalette.length])
+  const riskTint = new THREE.Color().lerpColors(lowRiskTint, highRiskTint, riskScore)
+  const hueOffset = ((seed % 11) - 5) * 0.025
 
-  if (riskScore < 0.5) {
-    color.lerpColors(low, mid, riskScore / 0.5)
-  } else {
-    color.lerpColors(mid, high, (riskScore - 0.5) / 0.5)
-  }
-
-  color.offsetHSL(hueOffset, 0.08, riskScore > 0.7 ? 0.02 : -0.01)
+  color.lerp(riskTint, 0.22 + riskScore * 0.18)
+  color.offsetHSL(hueOffset, 0.16, riskScore > 0.55 ? 0.05 : -0.03)
 
   return color
+}
+
+export function getRetinaNodeColor(cohort) {
+  return getRiskColor(clamp(cohort.model.risk_score), getNodeSeed(cohort.id))
 }
 
 export function isWorseningCohort(cohort) {
