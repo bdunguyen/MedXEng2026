@@ -373,6 +373,13 @@
   fill: #b6c9c7;
 }
 
+.trend-chart .axis-label {
+  fill: #6b8886;
+  font-size: 8px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .trend-chart circle {
   stroke: #061014;
   stroke-width: 2;

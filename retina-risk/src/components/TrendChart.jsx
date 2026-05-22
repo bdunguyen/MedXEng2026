@@ -52,6 +52,12 @@ export default function TrendChart({ cohort, datasetKey, onClose }) {
           body: JSON.stringify({ cohortId: cohort.id, datasetKey }),
           signal: controller.signal,
         })
+
+        const contentType = response.headers.get('content-type') || ''
+        if (!contentType.includes('application/json')) {
+          throw new Error('Insights endpoint unavailable in this environment.')
+        }
+
         const payload = await response.json()
 
         if (!response.ok) {
@@ -99,10 +105,16 @@ export default function TrendChart({ cohort, datasetKey, onClose }) {
           </button>
         </header>
 
-        <svg className="trend-chart" viewBox={`0 0 ${width} ${height}`} role="img">
+        <svg className="trend-chart" viewBox={`0 0 ${width} ${height + 16}`} role="img">
           <title>{cohort.name} projected admission risk over the next 12 months</title>
           <line x1={padding} x2={width - padding} y1={height - padding} y2={height - padding} />
           <line x1={padding} x2={padding} y1={padding} y2={height - padding} />
+          <text className="axis-label" transform="rotate(-90)" x={-(height / 2)} y={10} textAnchor="middle">
+            Admission Risk
+          </text>
+          <text className="axis-label" x={width / 2} y={height + 13} textAnchor="middle">
+            Time
+          </text>
           <text x={padding - 8} y={padding + 4} textAnchor="end">
             100%
           </text>
