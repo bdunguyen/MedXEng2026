@@ -169,8 +169,8 @@ export default function TrendChart({ cohort, datasetKey, onClose }) {
             <strong>{formatPercent(latestRisk)}</strong>
           </div>
           <div>
-            <span>Burden</span>
-            <strong>{formatPercent(cohort.disease_burden)}</strong>
+            <span>AUROC</span>
+            <strong>{cohort.auroc != null ? cohort.auroc.toFixed(3) : 'n/a'}</strong>
           </div>
           <div>
             <span>Patients</span>
@@ -180,8 +180,8 @@ export default function TrendChart({ cohort, datasetKey, onClose }) {
 
         <div className="trend-insights" aria-live="polite">
           <div className="trend-insights-header">
-            <h3>Gemini insights</h3>
-            {insight?.source && <span>{insight.source}</span>}
+            <h3>Cohort insight</h3>
+            {insight?.source === 'gemini' && <span>Gemini</span>}
           </div>
           {isInsightLoading && <p>Generating cohort insight...</p>}
           {insightError && <p className="trend-insights-error">{insightError}</p>}

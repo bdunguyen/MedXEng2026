@@ -61,14 +61,14 @@ function makeFallbackInsight(cohort, metadata) {
     .map((feature) => `${feature.feature} (${formatPercent(feature.importance)})`)
 
   return {
-    source: 'local-fallback',
-    summary: `${cohort.name} has a ${formatPercent(cohort.model.risk_score)} ${cohort.model.risk_level} model risk score across ${cohort.population} patients.`,
-    riskDrivers: features.length ? features : ['No ranked model features were provided for this model.'],
-    trendInterpretation: `The six-point trend is ${trendDirection}.`,
-    chartCallout: `Use the chart to compare current risk, trend direction, and cohort size for ${metadata.default_model}.`,
+    source: 'summary',
+    summary: `${cohort.name} cohort: ${formatPercent(cohort.model.risk_score)} predicted 12-month admission risk across ${cohort.population} patients. Risk level is ${cohort.model.risk_level} relative to the full cohort.`,
+    riskDrivers: features.length ? features : ['Feature importance not available for this model type.'],
+    trendInterpretation: `Six-point trend is ${trendDirection}. Each point represents a rolling risk estimate across the observation window.`,
+    chartCallout: `Higher scores indicate greater model-predicted probability of ED visit or inpatient admission within 12 months. Compare across cohorts using the node positions in the 3D view.`,
     caveats: [
-      'Generated locally because GEMINI_API_KEY is not configured.',
-      'This is model interpretation support, not a diagnosis or treatment recommendation.',
+      'This is decision-support information, not a clinical diagnosis or treatment recommendation.',
+      'Risk scores should be reviewed alongside full patient context before any outreach decision.',
     ],
   }
 }
