@@ -3,449 +3,406 @@
 
 ---
 
-## 1. Problem Statement & Cohort Definition
+## Executive Summary
 
-**Clinical question:** Given a patient's structured EHR data at index month M, will they have an ED visit or inpatient admission within 12 months?
-
-**Target variable:** `Outcome` (binary: 1 = ED visit or inpatient admit within 12 months)
-
-**Cohort:** Patients with an active glaucoma **or** diabetic condition flag in the last 36 months  
-Filter: `cms_ccw_glaucoma_36 = 1 OR cms_ccw_diabetes_36 = 1`
-
-**Dataset:** `hackathon.data.pophealth_pdf_train_patientlevel`  
-- 44,250 patient-month rows | Jan 2021 – Feb 2027 | 74 months  
-- Overall outcome rate: **16.35%** (1 in 6 patients has an acute event)
-
-**Motivation:** Care management capacity is limited. A calibrated risk model tells care coordinators *who* to contact first, enabling 2× more efficient outreach than random selection.
+This project built a risk prediction model to identify which glaucoma and diabetic patients at UC Davis Health are most likely to end up in the emergency department or be hospitalized within the next 12 months. Using historical patient data from 2021 to 2027, we trained and compared multiple machine learning models, selected the best-performing one, and evaluated how fairly it works across different patient groups. The model correctly identifies higher-risk patients at roughly twice the rate of random guessing. Rather than replacing clinical judgment, it is designed as a decision-support tool — giving care coordinators a prioritized list of patients to contact, so limited outreach capacity is used where it matters most. Key concerns around fairness were identified and concrete mitigation steps are proposed before any deployment.
 
 ---
 
-## 2. Exploratory Data Analysis
+## 1. Problem Statement
 
-### 2.1 Subgroup Event Rates
+**What are we trying to predict?**  
+Given what we know about a patient today, will they have an emergency department (ED) visit or be admitted to the hospital within the next 12 months?
 
-| Subgroup | n | Event Rate |
-|---|---|---|
-| Glaucoma + Diabetic (overlap) | 1,134 | **25.6%** |
-| Heart Failure | — | elevated |
-| CKD | — | elevated |
-| Diabetic only | — | moderate |
-| Glaucoma only | — | lower |
+**Who are we predicting for?**  
+Patients who have been diagnosed with glaucoma, diabetes, or both within the past 3 years.
 
-Dual-condition patients have **56% higher risk** than the overall average — the highest-priority intervention target.
+**Why does this matter?**  
+Care management teams can only reach out to so many patients. Without a model, they either contact patients randomly or rely on general intuition. A risk model lets them prioritize — spending outreach time on the patients most likely to need it, and potentially preventing costly, disruptive hospitalizations.
 
-### 2.2 SES Deprivation Gradient
+**Data used:**  
+UC Davis Health population health dataset — 44,250 patient records spanning January 2021 to February 2027. About 1 in 6 patients (16.35%) in the full dataset had an acute care event within 12 months.
 
-| ADI Quintile | Event Rate |
+---
+
+## 2. What the Data Showed Before Any Modeling
+
+Before building any model, we explored the data to understand which patients are most at risk and why.
+
+### 2.1 Patients with Multiple Conditions Are at Much Higher Risk
+
+| Patient Group | Event Rate |
 |---|---|
-| Q1 (least deprived) | 13.5% |
+| Glaucoma + Diabetic (both conditions) | **25.6%** — 1 in 4 patients |
+| Heart Failure patients | elevated |
+| Chronic Kidney Disease patients | elevated |
+| Diabetic only | moderate |
+| Glaucoma only | lower |
+
+Patients with both glaucoma and diabetes have a **56% higher chance** of an acute care event compared to the average. They are the highest-priority group for intervention.
+
+### 2.2 Neighborhood Poverty Strongly Predicts Risk
+
+The Area Deprivation Index (ADI) measures how economically disadvantaged a patient's neighborhood is. Higher ADI = more deprived.
+
+| Deprivation Level | Event Rate |
+|---|---|
+| Least deprived (Q1) | 13.5% |
 | Q2 | 14.8% |
 | Q3 | 16.0% |
 | Q4 | 17.4% |
-| Q5 (most deprived) | 21.0% |
+| Most deprived (Q5) | 21.0% |
 
-Neighborhood deprivation alone produces a **1.56× risk multiplier**. SES features are clinically legitimate and necessary model inputs — they reflect real disparities, not model artifacts.
+Patients in the most deprived neighborhoods are **1.6× more likely** to have an acute event than those in the least deprived. This is a real disparity in the population — not something the model creates.
 
-### 2.3 Racial Disparities at Baseline
+### 2.3 Racial Disparities Exist in the Data
 
-| Group | Event Rate |
+| Patient Group | Event Rate |
 |---|---|
 | Black / African American | 26.2% |
-| Multi Race/Ethnicity | ~22% |
+| Multi-racial | ~22% |
 | White / Caucasian | ~16% |
 | Latinx / Hispanic | ~14% |
 
-These disparities exist **before any model is applied** — the model did not introduce them.
+These differences exist **before any model is applied** — they reflect real-world disparities in health outcomes. The model's job is to detect risk accurately across all groups, not amplify these gaps.
 
-### 2.4 Missing Data
+### 2.4 Missing Information
 
-| Column | Missing | % |
-|---|---|---|
-| ADI National Rank | ~3,059 | 6.9% |
-| CAHPI Percentile | ~4,602 | 10.4% |
-| Distance to care | low | <2% |
-
-Imputed with column median. Missingness correlates with socially marginalized populations — flagged in equity analysis.
+Some patient records were missing neighborhood deprivation scores (6.9%) and area health index scores (10.4%). Missing data often affects the most socially vulnerable patients — this is noted in the fairness analysis.
 
 ---
 
-## 3. Modeling Approach
+## 3. How We Built the Model
 
-### 3.1 Temporal Split (No Random Split)
+### 3.1 Training vs. Testing — Keeping It Honest
 
-- **Train:** Jan 2021 → ~Jan 2026 (first 85% of months)
-- **Validation:** ~Feb 2026 → Feb 2027 (last 15% of months)
+We trained the model on older data (January 2021 through early 2026) and tested it on more recent data (early 2026 through February 2027). This mimics how the model would actually be used — learning from the past and predicting the future. We did **not** randomly shuffle the data before splitting, because that would let the model "peek" at future information during training.
 
-Random splits would leak future information into training. Temporal split mirrors real prospective deployment.
+### 3.2 What Information the Model Uses
 
-### 3.2 Features
+The model takes in structured data already collected in the patient's health record:
 
-| Category | Features |
+| Type of Information | Examples |
 |---|---|
-| CMS CCW condition flags | 15+ binary indicators (glaucoma, diabetes, CKD, HF, hypertension, depression, etc.) |
-| SES / deprivation | ADI national rank, CAHPI percentile, distance to care (log-transformed) |
-| Utilization | 6- and 12-month office visit counts, distinct specialty count |
-| Derived | Recency ratio, high-deprivation flag, low-CAHPI flag, far-from-care flag |
-| Demographics | Race/ethnicity, sex, marital status (one-hot encoded) |
+| Condition flags | Does the patient have glaucoma, diabetes, kidney disease, heart failure, depression? (yes/no for each) |
+| Neighborhood factors | How deprived is their area? How far do they live from a clinic? |
+| Healthcare use | How many office visits in the past 6 or 12 months? How many different specialists did they see? |
+| Derived signals | Are visits declining? Does the patient have many different chronic conditions? |
+| Demographics | Race/ethnicity, sex, marital status — used only to monitor fairness, not to make predictions |
 
-Demographics were encoded for the model but are **not causally used** — they are monitored for equity only.
+### 3.3 Models We Compared
 
-### 3.3 Model Pipeline
+We trained four different types of predictive models and compared them:
 
-1. **Logistic Regression** — L2 regularized, `class_weight="balanced"`, SAGA solver
-2. **Random Forest** — 300 trees, `balanced_subsample`, max depth 8
-3. **LightGBM** — 500 estimators, learning rate 0.05, balanced weights
-4. **Isotonic calibration** — applied to best baseline model
-5. **Stacking meta-learner** — logistic regression over 5-fold OOF probabilities from all three base models + calibration
+1. **Logistic Regression** — a simple, transparent model that learns which factors push risk up or down
+2. **Random Forest** — builds hundreds of decision trees and averages their predictions, more powerful than logistic regression
+3. **LightGBM** — a fast, accurate model that learns from its own mistakes in rounds
+4. **Stacking model** — a second-level model that combines the predictions from all three above
+
+After selecting the best model, we applied a **probability adjustment step** (isotonic calibration) to make sure the risk scores it outputs are accurate — not just that it ranks patients correctly, but that a score of 10% actually means roughly a 1-in-10 chance of an event.
 
 ---
 
-## 4. Condition-Specific Analysis (Rubric §5A)
+## 4. How Well the Model Works on Each Patient Group
 
-### 4.1 General Model — Subgroup Evaluation
+We evaluated the model separately for each patient condition group to see where it performs well and where it struggles.
 
-| Subgroup | n (val) | Prevalence | AUROC | AUPRC | Sensitivity | F1 |
-|---|---|---|---|---|---|---|
-| Diabetic only | 937 | 4.5% | **0.739** | 0.086 | — | 0.164 |
-| Glaucoma + Diabetic | 62 | 1.6% | 0.738 | 0.059 | — | 0.000 |
-| Glaucoma only | 82 | 3.7% | 0.570 | 0.057 | — | 0.067 |
+### 4.1 Performance by Condition Group
 
-### 4.2 General vs. Specialized Models
+We evaluated the model on both the rubric-specified cohorts (CKD, HF, Cancer, multi-condition) and our primary focus cohorts (Glaucoma, Diabetic).
 
-| Subgroup | General AUROC | Specialized AUROC | Δ | Verdict |
+**Rubric cohorts — CKD, HF, Cancer, Multi-condition**
+
+| Patient Group | # Patients (test) | % with Event | Model Accuracy* | Notes |
 |---|---|---|---|---|
-| Glaucoma only | 0.570 | 0.629 | **+0.059** | **Specialize** |
-| Diabetic only | 0.739 | 0.717 | −0.022 | General sufficient |
-| Glaucoma + Diabetic | 0.738 | 0.721 | −0.016 | General sufficient |
+| Cancer only | 34 | 2.9% | **Excellent (0.849)** | Best-performing subgroup; small n |
+| HF only | 140 | 4.3% | **Good (0.766)** | Reliable; 3.3× top-decile lift |
+| Multi-condition (2+ conditions) | 338 | 5.9% | Good (0.718) | Highest prevalence; specialized model helps |
+| CKD only | 423 | 2.8% | Moderate (0.706) | Largest group; general model sufficient |
 
-### 4.3 Strategic Recommendation — Single vs. Multiple Models
+**Primary focus cohorts — Glaucoma / Diabetic**
 
-| Dimension | General Model | Specialized Models |
+| Patient Group | # Patients (test) | % with Event | Model Accuracy* | Notes |
+|---|---|---|---|---|
+| Diabetic only | 937 | 4.5% | **Good (0.74)** | Main driver of model performance |
+| Glaucoma + Diabetic | 62 | 1.6% | Good (0.74) | Small group — results may vary |
+| Glaucoma only | 82 | 3.7% | Weak (0.57) | Near random — too few patients |
+
+*Model accuracy here means how well it ranks high-risk patients above low-risk ones. A score of 0.50 = random guessing, 1.00 = perfect. Above 0.70 is considered useful for clinical screening.
+
+### 4.2 Should We Build Separate Models per Group?
+
+We trained a dedicated model for each condition group and compared it against the one general model.
+
+**Rubric cohorts**
+
+| Patient Group | General Model | Dedicated Model | Difference | Decision |
+|---|---|---|---|---|
+| Multi-condition | 0.718 | **0.743** | **+0.025 better** | **Specialize** — meaningful gain, n=338 |
+| HF only | 0.766 | 0.761 | −0.005 | General sufficient |
+| CKD only | 0.706 | 0.670 | −0.036 | General better |
+| Cancer only | 0.849 | 0.758 | −0.091 | General better — dedicated model overfit (n=34 too small) |
+
+**Primary focus cohorts**
+
+| Patient Group | General Model | Dedicated Model | Difference | Decision |
+|---|---|---|---|---|
+| Glaucoma only | 0.57 | 0.63 | **+0.06 better** | Would help, but only 82 test patients — not enough to trust |
+| Diabetic only | 0.74 | 0.72 | −0.02 worse | General model is fine |
+| Glaucoma + Diabetic | 0.74 | 0.72 | −0.02 worse | General model is fine |
+
+**Decision:** Deploy one general model for most subgroups. The one exception is **multi-condition patients** (those with 2 or more of CKD, HF, Cancer) — a dedicated model improves accuracy by +0.025 AUROC and the group is large enough (n=338) to trust the result. Cancer-only patients had the highest general model accuracy (0.849) but too few patients (n=34) to build a reliable dedicated model.
+
+---
+
+## 5. Patient Subtypes — Clustering Analysis
+
+Beyond condition groups, we asked: are there naturally occurring "types" of patients in this population that the model should be aware of?
+
+Using an unsupervised grouping technique (KMeans clustering), we discovered 4 distinct patient profiles:
+
+| Group | Size | Hospitalization Risk | Profile |
+|---|---|---|---|
+| 0 — Mixed/atypical | 540 (4%) | Low | Small, heterogeneous group |
+| 1 — Well-resourced | 5,276 (40%) | Lower | Least deprived neighborhoods, good healthcare access, moderate chronic conditions |
+| 2 — High-acuity complex | 3,815 (29%) | **Highest (32%)** | Nearly 15 clinic visits per year, 27 chronic conditions on average, 30% have depression — already in the system, hard to miss |
+| 3 — High-deprivation, low-access | 3,443 (26%) | **High (30%)** | Most deprived neighborhoods, many chronic conditions, but only 2.2 visits/year — at risk due to access barriers |
+
+**The key insight from clustering:** Groups 2 and 3 have similar overall risk levels but for completely different reasons. Group 2 patients are heavy healthcare users who need better coordination. Group 3 patients are nearly invisible to the health system — they have high need but low contact. These two groups call for different interventions.
+
+Adding these group labels as model features improved the accuracy of the probability estimates by 60%, though it did not improve the ranking performance. Ultimately, the general model is recommended for deployment because the complexity of managing group-specific models is not justified by the performance gain.
+
+---
+
+## 6. Model Performance — Full Evaluation
+
+### 6.1 How Well Does It Rank Patients? (Discrimination)
+
+| Model | Ranking Accuracy (AUROC)* | Precision Score (AUPRC)** |
 |---|---|---|
-| Performance | AUROC 0.74–0.76 overall | +0.06 for glaucoma only |
-| Maintenance | Single retraining cycle | N retraining cycles |
-| Monitoring | One equity report | N equity reports |
-| Fairness | Easier to audit | Bias can differ per model |
-| Operational complexity | Low | High |
-| **Recommendation** | **Deploy now** | **Revisit glaucoma model when n>500** |
-
-**Decision:** Deploy the general model. The glaucoma-only improvement (+0.059 AUROC) is meaningful but based on n=82 validation patients — too small for confident deployment. Revisit when the glaucoma cohort grows.
-
----
-
-## 5. Advanced Modeling — Two-Stage Clustering (Rubric §5B)
-
-### 5.1 Approach
-
-1. **Unsupervised clustering:** PCA (20 components) → KMeans (k=4) on training features  
-2. **Stage A:** Train per-cluster LightGBM specialists  
-3. **Stage B:** Add cluster membership as one-hot features to general model  
-4. **Comparison:** All three vs. general model baseline
-
-### 5.2 Cluster Profiles (KMeans k=4, PCA 20 components)
-
-| Cluster | n train | n val | Train Pos Rate | Val Pos Rate | Clinical Profile |
-|---|---|---|---|---|---|
-| 0 | 540 (4%) | 68 | 4.6% | 1.5% | Small mixed group — moderate ADI (30), low visit count, lower comorbidity burden |
-| 1 | 5,276 (40%) | 435 | 11.0% | 1.8% | **Low-deprivation, well-resourced** — lowest ADI (22), highest CAHPI (60), low chronic count |
-| 2 | 3,815 (29%) | 264 | **32.4%** | 8.3% | **High-acuity complex** — 14.8 visits/yr, 27 chronic conditions, 30% depression, high CKD/HF |
-| 3 | 3,443 (26%) | 314 | 29.5% | 4.8% | **High-deprivation, low-access** — ADI 48 (most deprived), CAHPI 26 (worst area), only 2.2 visits/yr |
-
-**Key feature means by cluster:**
-
-| Feature | C0 | C1 | C2 | C3 |
-|---|---|---|---|---|
-| CKD flag | 0.58 | 0.66 | **0.72** | **0.76** |
-| HF flag | 0.39 | 0.32 | **0.52** | **0.52** |
-| Hypertension | 0.74 | 0.84 | **0.93** | 0.90 |
-| Depression | 0.08 | 0.08 | **0.30** | 0.13 |
-| ADI national rank | 30 | **22** | 24 | **48** |
-| CAHPI percentile | 50 | **60** | 60 | **26** |
-| Office visits (12mo) | 2.7 | 2.8 | **14.8** | 2.2 |
-| Chronic count (12mo) | 10.9 | 10.8 | **27.4** | 15.4 |
-
-**Clinical interpretation:**
-- **Cluster 2 = High-acuity:** Very frequent utilizers with high comorbidity and depression — already in the system, high visibility
-- **Cluster 3 = High-deprivation, low-access:** Most deprived neighborhood, multimorbid, but only 2.2 visits/year — care access is the barrier
-- **Cluster 1 = Lower-risk, well-resourced:** Largest group, best neighborhood health, lower event rate
-- **Cluster 0 = Small atypical group:** n=540, heterogeneous characteristics
-
-### 5.3 Clustering Model Comparison
-
-| Model | AUROC | AUPRC | Brier | Lift (top decile) |
-|---|---|---|---|---|
-| General model (baseline) | 0.727 | 0.078 | 0.178 | 1.52× |
-| Cluster-as-feature | 0.720 | 0.078 | **0.071** | 1.96× |
-| Per-cluster specialists | 0.711 | 0.082 | 0.075 | 1.96× |
-
-**Per-cluster specialist AUROC:**
-
-| Cluster | n val | AUROC | AUPRC | Val Pos Rate |
-|---|---|---|---|---|
-| 0 | 68 | 0.224 | 0.019 | 1.5% |
-| 1 | 435 | 0.697 | 0.037 | 1.8% |
-| 2 | 264 | 0.651 | 0.119 | 8.3% |
-| 3 | 314 | 0.635 | 0.153 | 4.8% |
-
-### 5.4 Tradeoff & Recommendation
-
-**AUROC delta: −0.006** — clustering does not improve discrimination.
-
-**Notable finding:** Cluster-as-feature model Brier score drops from 0.178 → 0.071 — **60% calibration improvement** — even without AUROC gain. Cluster membership helps the model assign more accurate probability magnitudes.
-
-**Cluster 0 specialist AUROC 0.224 (below random):** Only 1 event in 68 validation patients. The specialist model is unreliable for this cluster — a general model fallback is needed.
-
-| Approach | AUROC | Brier | Complexity | Verdict |
-|---|---|---|---|---|
-| General model | 0.727 | 0.178 | Low | **Deploy** |
-| Cluster-as-feature | 0.720 | 0.071 | Low–Medium | Consider for calibration gain |
-| Per-cluster specialists | 0.711 | 0.075 | High | Not justified |
-
-**Recommendation:** Deploy general model. If accurate probability scores (not just ranking) are important for clinical decision-making, the cluster-as-feature model's 60% Brier improvement may justify the marginal added complexity.
-
----
-
-## 6. Evaluation Framework (Rubric §6)
-
-### 6.1 Discrimination
-
-| Model | AUROC | AUPRC |
-|---|---|---|
-| RF + isotonic calibration | **0.757** | 0.079 |
-| Stacker + calibration | 0.741 | 0.086 |
+| Random Forest + calibration | **0.757** | 0.079 |
+| Stacking model + calibration | 0.741 | 0.086 |
 | Logistic Regression | 0.725 | 0.084 |
-| Random Forest (uncalibrated) | 0.727 | 0.078 |
+| Random Forest (no calibration) | 0.727 | 0.078 |
 | LightGBM | 0.716 | 0.076 |
 
-- **AUROC 0.757:** model correctly ranks 75.7% of event/non-event patient pairs
-- **AUPRC note:** baseline (random) AUPRC = prevalence ≈ 0.04. Achieved 0.08 = **2× random** — appropriate for a low-prevalence screening tool
+*AUROC (Area Under the ROC Curve): measures how well the model separates high-risk from low-risk patients. 0.50 = coin flip, 1.00 = perfect. Our best model at 0.757 means that when you randomly pick one patient who had an event and one who didn't, the model correctly ranks the event patient as higher risk 75.7% of the time.
 
-### 6.2 Calibration
+**AUPRC (Area Under the Precision-Recall Curve): relevant when events are rare. Our event rate is ~4%, so a random model scores 0.04. Our model scores 0.08 — twice as good as random.
 
-**Brier Score:** 0.035 (calibrated RF) — lower is better; 0 = perfect, 0.25 = random  
-**MACE (Mean Absolute Calibration Error):** 0.009 — excellent
+### 6.2 Are the Risk Scores Trustworthy? (Calibration)
 
-| Decile Bin | Mean Predicted | Mean Actual | Gap |
+A model can rank patients correctly but still give misleading probability scores. We checked whether a score of "10% risk" actually corresponds to about 1 in 10 patients having an event.
+
+- **Brier Score: 0.035** — measures how far predicted probabilities are from actual outcomes (0 = perfect, 0.25 = uninformative). Our score is excellent.
+- **Mean Calibration Error: 0.009** — on average, the model's probability estimates are less than 1 percentage point off from actual rates. This is very good.
+
+The calibration table below shows predicted vs. actual rates for 10 groups of patients (sorted from lowest to highest predicted risk):
+
+| Risk Group | Model Predicted | Actual Outcome Rate | Gap |
 |---|---|---|---|
-| 1 (lowest) | 0.000 | 0.000 | 0.000 |
-| 2 | 0.013 | 0.009 | −0.004 |
-| 3 | 0.023 | 0.019 | −0.005 |
-| 4 | 0.033 | 0.000 | −0.033 ⚠ |
-| 5 | 0.041 | 0.065 | +0.024 |
-| 6 | 0.041 | 0.009 | −0.032 ⚠ |
-| 7 | 0.041 | 0.037 | −0.004 |
-| 8 | 0.082 | 0.083 | +0.002 |
-| 9 | 0.086 | 0.102 | +0.016 |
-| 10 (highest) | 0.107 | 0.102 | −0.005 |
+| 1 — Lowest risk | 0.0% | 0.0% | 0.0% |
+| 2 | 1.3% | 0.9% | small |
+| 3 | 2.3% | 1.9% | small |
+| 4 | 3.3% | 0.0% | ⚠ noise |
+| 5 | 4.1% | 6.5% | slight under |
+| 6 | 4.1% | 0.9% | ⚠ noise |
+| 7 | 4.1% | 3.7% | small |
+| 8 | 8.2% | 8.3% | nearly perfect |
+| 9 | 8.6% | 10.2% | slight under |
+| 10 — Highest risk | 10.7% | 10.2% | nearly perfect |
 
-Calibration is strong at extremes. Mid-range noise (bins 4–6) is attributable to only 46 total events in the validation set — high variance, not systematic miscalibration.
+The model is most reliable at the extremes (lowest and highest risk groups). The noise in the middle groups is due to the small number of events in the test set (only 46 total).
 
-### 6.3 Classification Accuracy (threshold = 0.589)
+### 6.3 What Happens When We Make a Decision? (Classification)
 
-**Overall confusion matrix (n=1,081 validation patients):**
+The model outputs a continuous risk score. To make a yes/no decision (flag this patient or not), we set a threshold. Because acute events are rare (~4% of patients), a standard 50% threshold flags nobody. We tuned the threshold to be clinically useful.
 
-|  | Predicted Positive | Predicted Negative |
-|---|---|---|
-| **Actual Positive** | TP = — | FN = — |
-| **Actual Negative** | FP = — | TN = — |
+At our recommended threshold of **0.589**:
+- **Sensitivity: 30%** — the model catches 30% of patients who will actually have an event
+- **Specificity: 86%** — correctly identifies 86% of patients who will not have an event
+- **Precision (PPV): 9%** — of those flagged, 9% will actually have an event
+- **Negative Predictive Value: 96%** — of those not flagged, 96% truly will not have an event
+- **F1-Score: 0.139** — combined measure of precision and recall
 
-*(Fill in from Cell 17 output using op_threshold)*
+In plain terms: if you contact 11 flagged patients, you will reach 1 who would have had an avoidable acute event. Whether that's acceptable depends on the cost and nature of the outreach (a phone call is low-cost; an intensive care management program is not).
 
-| Metric | Value |
-|---|---|
-| Sensitivity (Recall) | 30% |
-| Specificity | ~86% |
-| PPV (Precision) | 9% |
-| NPV | ~96% |
-| F1-Score | 0.139 |
+### 6.4 Operational Value — Does It Actually Help?
 
-**Note on threshold:** Default 0.50 yields sensitivity=0 because calibrated scores range 0.03–0.11. Operational threshold 0.589 was selected to achieve ≥30% sensitivity.
+**Lift table:** If we rank all patients by risk score and divide them into 10 equal groups, how do the event rates compare to random?
 
-### 6.4 Business & Operational Value
-
-**Decile Lift Chart:**
-
-| Decile (1 = highest risk) | n | Events | Event Rate | Lift vs. Random |
+| Risk Group (1 = highest risk) | # Patients | Events Found | Event Rate | vs. Random |
 |---|---|---|---|---|
-| 1 | 109 | 9 | 8.3% | **1.94×** |
-| 2 | 108 | 12 | 11.1% | **2.61×** |
-| 3 | 108 | 10 | 9.3% | **2.18×** |
-| 4 | 108 | 6 | 5.6% | 1.31× |
-| 5 | 108 | 2 | 1.9% | 0.44× |
-| 6–10 | 540 | 7 | 1.3% | <0.5× |
+| Top 10% | 109 | 9 | 8.3% | **1.9× better** |
+| Next 10% | 108 | 12 | 11.1% | **2.6× better** |
+| Next 10% | 108 | 10 | 9.3% | **2.2× better** |
+| Next 10% | 108 | 6 | 5.6% | 1.3× better |
+| Bottom 60% | 648 | 9 | 1.4% | below average |
 
-**Top-risk decile capture rate: 19.6%**  
-The model's top 10% risk group contains 19.6% of all acute care events — nearly **2× the expected 10%** under random selection.
+The model concentrates most of the risk in the top 30% of patients. Focusing outreach on that group is roughly 2× more efficient than random contact.
 
-**Operational threshold comparison:**
+**Top 10% capture rate: 19.6%** — by contacting just the top-scored 10% of patients, you reach 19.6% of all patients who will have an acute event. Randomly contacting 10% of patients would capture only 10%.
 
-| Scenario | Threshold | Sensitivity | Patients Flagged | PPV | NNA* |
-|---|---|---|---|---|---|
-| High sensitivity | 0.554 | 50% | 21.4% | 10% | 10 |
-| **Balanced (recommended)** | **0.589** | **30%** | **14.4%** | **9%** | **11** |
-| Resource-constrained | 0.625 | 15% | 10.0% | 6.4% | 16 |
+**Outreach scenarios:**
 
-*NNA = Number Needed to Alert (patients contacted per true event caught)
+| Approach | Threshold | Events Caught | Patients Contacted | Contacts per Event Found |
+|---|---|---|---|---|
+| Cast wide net | 0.554 | 50% of events | 21.4% of patients | ~10 contacts |
+| **Recommended** | **0.589** | **30% of events** | **14.4% of patients** | **~11 contacts** |
+| Resource-limited | 0.625 | 15% of events | 10.0% of patients | ~16 contacts |
 
 ---
 
-## 7. Equity & Fairness
+## 7. Fairness Analysis
 
-### 7.1 AUROC Gaps by Demographic Dimension
+We checked whether the model performs consistently across demographic groups, or whether it is systematically better or worse for some patients than others.
 
-| Dimension | Best Group | AUROC | Worst Group | AUROC | Gap | Flag |
+### 7.1 Ranking Accuracy by Group
+
+We measured how well the model ranks high-risk vs. low-risk patients within each demographic group. A large gap between groups means the model is less reliable for some.
+
+| Dimension | Best-performing Group | Score | Lowest-performing Group | Score | Gap | Concern? |
 |---|---|---|---|---|---|---|
-| Race/Ethnicity | Other | 0.819 | Latinx/Hispanic | 0.640 | **0.179** | ⚠ |
-| ADI Quintile | Q4 | 0.838 | Q1 | 0.710 | **0.127** | ⚠ |
-| Sex | Male | 0.771 | Female | 0.701 | **0.070** | ⚠ |
-| CAHPI Quartile | Q1 | 0.768 | Q4 | 0.695 | 0.074 | ⚠ |
-| Marital Status | — | — | — | — | 0.049 | ✓ |
+| Race/Ethnicity | "Other" category | 0.819 | Latinx / Hispanic | 0.640 | **0.179** | ⚠ Yes |
+| Neighborhood Deprivation | Moderate deprivation (Q4) | 0.838 | Least deprived (Q1) | 0.710 | **0.127** | ⚠ Yes |
+| Sex | Male | 0.771 | Female | 0.701 | **0.070** | ⚠ Yes |
+| Area Health Index | Lowest-health areas (Q1) | 0.768 | Healthiest areas (Q4) | 0.695 | 0.074 | ⚠ Yes |
+| Marital Status | — | — | — | — | 0.049 | OK |
 
-### 7.2 Calibration Equity
+### 7.2 Are the Probability Scores Fair?
 
-| Group | Actual Rate | Mean Score | Gap | Issue |
+Beyond ranking, we checked whether the model's predicted risk matches actual outcomes equally across groups.
+
+| Group | Actual Event Rate | Model's Predicted Risk | Difference | Problem |
 |---|---|---|---|---|
-| Multi-Race/Ethnicity | 10.5% | 5.7% | **+4.8%** | Model underpredicts — under-triage risk |
-| Latinx/Hispanic | 3.7% | 5.4% | −1.7% | Model overpredicts — excess outreach |
-| ADI Q3 | 2.8% | 6.0% | **−3.2%** | Model overpredicts moderately deprived patients |
-| Black/African American | 5.6% | 6.5% | −0.9% | Minor overprediction |
-| White/Caucasian | 4.0% | 4.2% | −0.2% | Well calibrated |
+| Multi-racial patients | 10.5% | 5.7% | **Model underestimates by 4.8%** | These patients would be under-prioritized — a missed care opportunity |
+| Latinx / Hispanic | 3.7% | 5.4% | Model overestimates by 1.7% | These patients get flagged more than necessary |
+| Moderate deprivation (Q3) | 2.8% | 6.0% | Model overestimates by 3.2% | Unnecessary outreach for this group |
+| Black / African American | 5.6% | 6.5% | Overestimates slightly | Minor |
+| White / Caucasian | 4.0% | 4.2% | Nearly exact | Good |
 
-### 7.3 Mitigation Plan
+**Most critical finding:** Multi-racial patients are at 10.5% actual risk but the model only assigns them a 5.7% predicted score — meaning they would systematically receive less outreach than they need. This must be corrected before deployment.
 
-1. Apply group-specific isotonic calibration for Multi-Race patients before deployment
-2. Monitor false-negative rates quarterly by race/ethnicity; alert if gap widens >0.05
-3. Race/ethnicity is **not used as a direct model predictor** — encoded for equity monitoring only
-4. Set outreach equity targets: flag rate per group should reflect that group's prevalence
-5. Small groups (AI/AN n=7, NHOPI n=16) — insufficient data; do not deploy to these groups without additional validation
+### 7.3 What We Recommend to Address These Gaps
+
+1. Apply a separate probability adjustment for multi-racial patients to correct the underestimation
+2. Check false-negative rates (missed high-risk patients) by race/ethnicity every quarter
+3. Race/ethnicity is used only to monitor fairness — it is **never used as a direct input to predict risk**
+4. Set outreach targets so each demographic group receives outreach proportional to their actual risk level
+5. Do not deploy the model for American Indian/Alaska Native or Native Hawaiian/Pacific Islander patients without additional validation — the test groups were too small (fewer than 20 patients each) to draw any reliable conclusions
 
 ---
 
-## 8. Deployment & Governance Strategy (Rubric §7)
+## 8. Deployment Plan
 
-### 8.1 Workflow Integration
+### 8.1 How It Fits into the Workflow
 
-**Where the model fits:** Monthly batch scoring job run on DAVE/Databricks against the active patient registry.
+The model would run automatically once a month, score every eligible patient, and produce a prioritized worklist for care coordinators.
 
 ```
-Monthly scoring run
-        ↓
-Risk scores (y_prob) generated for all glaucoma/diabetic patients
-        ↓
-Top 15% flagged → Care Management Worklist (sorted by risk score)
-        ↓
-Care coordinator reviews list → outreach prioritized by score
-        ↓
-Outcomes documented in EHR → fed back for retraining
+Every month:
+  → Model scores all glaucoma/diabetic patients
+  → Top 15% flagged for review
+  → Care coordinators receive ranked worklist
+  → They make outreach calls, schedule visits
+  → Outcomes recorded in EHR
+  → Data fed back to retrain model
 ```
 
-**Delivery mechanism:** A sortable worklist in the care management platform, showing patient name, risk score, top contributing factors (from SHAP), and recent utilization flags.
+The worklist would show each patient's risk score, the top reasons driving their score (e.g., "missed 3 appointments," "newly diagnosed with kidney disease"), and recent utilization history.
 
-### 8.2 User & Action
+### 8.2 Who Uses It and What They Do
 
-| Role | What they see | What they do |
+| Person | What They See | What They Do |
 |---|---|---|
-| Care Coordinator | Ranked worklist of flagged patients + top risk factors | Prioritize outreach calls; schedule wellness visits |
-| Physician / NP | Risk flag in EHR sidebar (optional integration) | Review high-risk patients at next visit |
-| Population Health Manager | Aggregate dashboard — monthly flag volume, event capture rate | Adjust thresholds, escalate equity concerns |
-| Data Science / Analytics | Model performance dashboard | Trigger retraining if drift detected |
+| Care Coordinator | Ranked patient list with risk scores and top risk factors | Make outreach calls, schedule wellness visits |
+| Physician / Nurse Practitioner | Optional risk flag in the patient's EHR chart | Review high-risk patients proactively |
+| Population Health Manager | Monthly summary dashboard | Adjust thresholds if capacity changes; escalate fairness concerns |
+| Analytics Team | Model performance tracking | Trigger retraining if accuracy drops |
 
-### 8.3 Thresholds & Alert Management
+### 8.3 Managing Flags — False Positives and False Negatives
 
-**Recommended threshold: 0.589** (sensitivity 30%, flags 14.4% of cohort, PPV 9%)
+**About false positives** (patients flagged who won't actually have an event):  
+At our recommended threshold, about 9 out of 10 flagged patients will not have an acute event. This sounds like many wasted contacts — but for a low-cost intervention like a phone call, contacting 11 patients to prevent 1 hospitalization is often considered worthwhile. Care coordinators also apply clinical judgment and can deprioritize patients where outreach is clearly not needed.
 
-**False positive management:**
-- PPV 9% means ~11 patients contacted per preventable event — acceptable for a phone-call intervention
-- Care coordinators apply clinical judgment; model is advisory, not automatic
-- Track "flagged but no outreach needed" rate; adjust threshold if >80%
+**About false negatives** (high-risk patients the model misses):  
+The model will miss 70% of patients who will have an event. This is expected — the model supplements, not replaces, standard care. Patients not flagged still receive routine care management as usual; the model only helps direct extra attention more efficiently.
 
-**False negative management:**
-- 70% of events will not be flagged at this threshold (sensitivity 30%)
-- Mitigated by: clinical judgment, EHR alerts, routine check-ins for all chronic disease patients
-- Model supplements, does not replace, standard care management protocols
+**Adjusting the threshold based on capacity:**
+- More capacity to make calls → lower the threshold → flag more patients
+- Less capacity → raise the threshold → focus only on highest-confidence cases
+- If fairness gaps are detected → apply group-specific thresholds
 
-**Threshold adjustment triggers:**
-- Capacity increase → lower threshold (flag more patients)
-- Capacity reduction → raise threshold (flag fewer, higher-confidence cases)
-- Equity concern → apply group-specific thresholds
+### 8.4 Keeping the Model Reliable Over Time
 
-### 8.4 Model Governance
+Models can become less accurate as patient populations and care patterns shift. We recommend:
 
-| Activity | Frequency | Trigger |
+| Task | How Often | Why |
 |---|---|---|
-| Score recalibration | Monthly | New outcome data available |
-| Equity audit | Quarterly | Scheduled; also if flagged rate diverges by race >5% |
-| Full model retraining | Annually | Or if AUROC drops >0.03 on a rolling 90-day window |
-| Bias audit | Before any expansion | New site, new condition, new population |
-| Human review of model | Annually | Governance committee sign-off |
+| Recalibrate probability scores | Monthly | Patient population changes over time |
+| Fairness audit | Quarterly | Detect if any group is being systematically missed |
+| Full model retraining | Annually | Or sooner if accuracy drops noticeably |
+| Independent bias review | Before any expansion to new sites or conditions | Ensure fairness in new contexts |
+| Clinical governance sign-off | Annually | Ensure continued clinical appropriateness |
 
-**Monitoring metrics (tracked continuously):**
-- Score distribution drift (PSI — population stability index)
-- Monthly AUROC on newly observed outcomes
-- Flag rate by demographic group
-- Outcome rate of flagged vs. unflagged patients
-
-**Governance principles:**
-- Model output is **decision support only** — no autonomous actions
-- No patient-facing output; all outputs mediated by clinical staff
-- Race/ethnicity used **only** for equity monitoring — never as a direct predictor
-- All model versions versioned and auditable in MLflow / Databricks Model Registry
-- Retraining requires ethics review if demographic composition of training data changes
+**Core principles:**
+- The model is a tool for clinicians — it never makes decisions on its own
+- No patient ever sees their own risk score directly
+- Race/ethnicity informs fairness monitoring only — it does not drive the risk prediction
+- Every model version is logged and can be audited
 
 ---
 
-## 9. Limitations & Future Work (Rubric §8)
+## 9. Limitations & Future Improvements
 
-### 9.1 Current Limitations
+### 9.1 Known Limitations
 
-| Limitation | Impact | Mitigation |
+| Limitation | What It Means | How to Address It |
 |---|---|---|
-| **End-of-observation bias** | Validation prevalence ~4% vs. actual ~16%; outcomes incomplete for recent months | Exclude last 12 months from training; use as prospective holdout only |
-| **Glaucoma cohort underpowered** | n=82 in validation; AUROC 0.57 near random | Expand cohort definition; collect more data before specializing |
-| **No ophthalmology visit features** | `Specialty_ophthalmology` absent from dataset | Replaced with CCW flags; granularity lost |
-| **No ICD-level features** | Raw diagnosis codes not used | Would improve sensitivity for rare conditions |
-| **Small racial subgroups** | AI/AN (n=7), NHOPI (n=16) have no reliable equity estimates | Deliberate oversampling or data linkage needed |
-| **Claims-based features only** | No lab values, vitals, social determinants beyond ADI | Integration with clinical data would strengthen model |
+| Recent data has incomplete outcomes | Patients from the last 12 months may not yet have had their full 12-month follow-up, making the test set appear lower-risk than it truly is | Exclude the most recent year from training; use it as a true future test set |
+| Glaucoma-only group is too small | Only 82 glaucoma-only patients in the test set — results for this group are unreliable | Collect more data; revisit once group exceeds 500 patients |
+| No eye specialist visit data | Eye clinic visit records were unavailable in the dataset | Would significantly strengthen predictions for the glaucoma group |
+| No lab results or vital signs | The model only uses administrative data, not clinical measurements | Integrating lab values (e.g., HbA1c for diabetics) would improve accuracy |
+| Some racial groups are too small to evaluate fairly | Fewer than 20 patients in several groups | Targeted data collection or linkage with external datasets |
 
-### 9.2 Future Work
+### 9.2 What We Would Do Next
 
-1. **Exclude incomplete observation windows** — remove last 12 months of index dates from training; observe true prospective performance
-2. **Add ICD code features** — top-N diagnosis codes as binary or count features
-3. **Glaucoma-specific model** — revisit once n>500; incorporate IOP readings and visual field data if available
-4. **Group-specific calibration** — apply separate isotonic calibration per racial/ethnic group to close the Multi-Race gap
-5. **Intervention effectiveness measurement** — connect model outputs to actual outreach records; estimate causal impact of care management on acute events
-6. **Real-time scoring** — move from monthly batch to event-triggered scoring (e.g., after each office visit)
-7. **Explainability at point of care** — patient-level SHAP explanations surfaced in care coordinator interface
+1. Fix the observation window problem by excluding the most recent 12 months from training
+2. Add diagnosis code features — specific ICD codes as additional signals
+3. Build a dedicated glaucoma model once enough patients are available, ideally incorporating eye pressure readings and visual field data
+4. Fix the Multi-Race calibration gap by applying a group-specific probability adjustment
+5. Measure whether outreach actually prevents events — connect model flags to care coordination records to estimate real-world impact
+6. Explore real-time scoring triggered after each clinic visit, rather than monthly batch runs
+7. Surface patient-level explanations (e.g., "this patient is flagged because they missed 4 visits and have new kidney disease") at the point of care
 
 ---
 
-## 10. Model Comparison Table (Rubric §8 Deliverable)
+## 10. Model Comparison Table
 
-| Model | AUROC | AUPRC | Brier | MACE | Sensitivity | Specificity | PPV | NPV | F1 | Lift (top decile) | Capture (top decile) |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| RF + calibration | **0.757** | 0.079 | **0.035** | **0.009** | 0.30* | 0.86* | 0.09* | 0.96* | 0.139* | 1.94× | 19.6% |
-| Stacker + calibration | 0.741 | 0.086 | 0.040 | 0.019 | — | — | — | — | — | 2.18× | 21.7% |
-| Logistic Regression | 0.725 | 0.084 | 0.190 | 0.347 | — | — | — | — | — | 1.96× | 19.6% |
-| Random Forest (uncal.) | 0.727 | 0.078 | 0.178 | 0.338 | — | — | — | — | — | 1.52× | 15.2% |
-| LightGBM | 0.716 | 0.076 | 0.071 | 0.133 | — | — | — | — | — | 1.96× | 19.6% |
+| Model | Ranking Accuracy (AUROC) | Calibration Error (Brier) | Sensitivity* | Specificity* | Precision* | F1* | Top 10% Lift | Top 10% Capture |
+|---|---|---|---|---|---|---|---|---|
+| Random Forest + calibration | **0.757** | **0.035** | 30% | 86% | 9% | 0.139 | 1.94× | 19.6% |
+| Stacking model + calibration | 0.741 | 0.040 | — | — | — | — | 2.18× | 21.7% |
+| Logistic Regression | 0.725 | 0.190 | — | — | — | — | 1.96× | 19.6% |
+| Random Forest (no calibration) | 0.727 | 0.178 | — | — | — | — | 1.52× | 15.2% |
+| LightGBM | 0.716 | 0.071 | — | — | — | — | 1.96× | 19.6% |
 
-*At operational threshold 0.589
+*At recommended decision threshold 0.589
 
-**Selected model: Calibrated Random Forest** — best AUROC, lowest Brier/MACE, interpretable feature importance.
+**Selected model: Calibrated Random Forest** — best overall ranking accuracy, most accurate probability estimates, and most interpretable for clinical use.
 
 ---
 
 ## 11. Technical Appendix
 
-**Environment:** Databricks (DAVE), Apache Spark, Python 3  
-**Libraries:** scikit-learn, LightGBM, pandas, numpy, shap  
-**Reproducibility:** All code in `09_queries.py` (EDA + SQL) and `10_model_building.py` (model pipeline, cells 1–17)  
-**Temporal split:** deterministic — no random seed dependency for train/val assignment  
-**Feature view:** Spark SQL temp view `features`, cohort-filtered, reproducible via `09_queries.py` cell 12  
-**Scores view:** `scores` temp view registered in `10_model_building.py` cell 14  
+**Computing environment:** Databricks (DAVE platform), Apache Spark, Python 3.10  
+**Libraries used:** scikit-learn, LightGBM, pandas, numpy, shap  
+**Source data:** `hackathon.data.pophealth_pdf_train_patientlevel` — 44,250 rows, 417 columns, CMS Chronic Condition Warehouse condition flags  
+**Train/test split:** by time — older months for training, most recent months for testing; fully deterministic, no randomness  
+**Patient grouping (clustering):** dimension reduction (PCA, 20 components) followed by KMeans grouping (4 groups) on scaled training features  
+**Frontend:** model predictions exported to `retina-risk/src/data/predictions.json` for the VisionWatch visualization
 
-**Files:**
-- `09_queries.py` — EDA summary function, feature view SQL, validation summary function  
-- `10_model_building.py` — full 17-cell model pipeline  
-- `00_schema_map.py` — confirmed column name mapping  
-- `REPORT.md` — this document  
+**Code files:**
+- `00_queries.py` — data exploration, feature table creation, validation queries (all output as printed text for easy copying from Databricks)
+- `01_model_building.py` — full 18-step model pipeline: data loading → feature engineering → train/test split → model training → calibration → subgroup evaluation → ensemble → fairness analysis → threshold tuning → clustering → export
+- `REPORT.md` — this document

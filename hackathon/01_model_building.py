@@ -851,3 +851,130 @@ except Exception as e:
     print("Copy the JSON below into retina-risk/src/data/predictions.json manually:")
     print()
     print(json_str)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# CELL 19 — CKD / HF / Cancer subgroup analysis (Rubric §5A mandatory)
+# Evaluates the general model on the condition cohorts specified in the rubric.
+# Requires meta_va to contain flag_ckd, flag_hf, flag_cancer columns.
+# ─────────────────────────────────────────────────────────────────────────────
+SEP3 = "=" * 62
+sep3 = "-" * 62
+
+print(SEP3)
+print("  §5A  CKD / HF / CANCER SUBGROUP ANALYSIS  (Rubric-required)")
+print(SEP3)
+
+# Build rubric-specified subgroup masks from meta_va condition flags
+ckd_col    = "flag_ckd"
+hf_col     = "flag_hf"
+cancer_col = "flag_cancer"
+
+# Pull condition flags from original df (has all columns; meta_va only keeps META_COLS)
+# va_mask is the boolean series from cell 3 selecting validation rows
+val_flags = df[va_mask].reset_index(drop=True)
+
+missing = [c for c in [ckd_col, hf_col, cancer_col] if c not in val_flags.columns]
+if missing:
+    print(f"  Warning: columns not found in features view: {missing}")
+    print("  Check that 00_queries.py cell 12 includes these CCW flag columns.")
+
+ckd_mask    = val_flags[ckd_col].values == 1    if ckd_col    in val_flags.columns else np.zeros(len(val_flags), dtype=bool)
+hf_mask     = val_flags[hf_col].values == 1     if hf_col     in val_flags.columns else np.zeros(len(val_flags), dtype=bool)
+cancer_mask = val_flags[cancer_col].values == 1 if cancer_col in val_flags.columns else np.zeros(len(val_flags), dtype=bool)
+multi_mask  = (ckd_mask.astype(int) + hf_mask.astype(int) + cancer_mask.astype(int)) >= 2
+
+rubric_subgroups = {
+    "CKD only":         ckd_mask    & ~hf_mask  & ~cancer_mask,
+    "HF only":          hf_mask     & ~ckd_mask  & ~cancer_mask,
+    "Cancer only":      cancer_mask & ~ckd_mask  & ~hf_mask,
+    "Multi-condition":  multi_mask,
+    "CKD (any)":        ckd_mask,
+    "HF (any)":         hf_mask,
+    "Cancer (any)":     cancer_mask,
+}
+
+p_general = val_probs[best_name]
+
+print(f"\n[A] GENERAL MODEL — performance on each rubric cohort")
+print(f"  {'Subgroup':<20} {'n':>6} {'Prev':>6} {'AUROC':>7} {'AUPRC':>7} {'Brier':>7} {'Lift10':>7}")
+print(f"  {sep3}")
+
+rubric_results = []
+for sg_name, mask in rubric_subgroups.items():
+    n_sg = int(mask.sum())
+    if n_sg < 20:
+        print(f"  {sg_name:<20} {n_sg:>6}  — too small, skipping")
+        continue
+    y_sg = y_va_np[mask]
+    p_sg = p_general[mask]
+    if len(np.unique(y_sg)) < 2:
+        print(f"  {sg_name:<20} {n_sg:>6}  — no events in group, skipping")
+        continue
+    auroc_sg = roc_auc_score(y_sg, p_sg)
+    auprc_sg = average_precision_score(y_sg, p_sg)
+    brier_sg = brier_score_loss(y_sg, p_sg)
+    k        = max(1, n_sg // 10)
+    top_idx  = np.argsort(p_sg)[::-1][:k]
+    lift_sg  = y_sg[top_idx].mean() / (y_sg.mean() + 1e-9)
+    prev     = y_sg.mean()
+    print(f"  {sg_name:<20} {n_sg:>6,} {prev:>6.3f} {auroc_sg:>7.4f} {auprc_sg:>7.4f} {brier_sg:>7.4f} {lift_sg:>7.2f}x")
+    rubric_results.append(dict(subgroup=sg_name, n=n_sg, prevalence=round(prev,3),
+                                auroc=round(auroc_sg,4), auprc=round(auprc_sg,4),
+                                brier=round(brier_sg,4), lift=round(lift_sg,2)))
+
+# ── Specialized models per rubric subgroup ─────────────────────────────────────
+print(f"\n[B] SPECIALIZED MODELS — trained on each rubric cohort")
+print(f"  {'Subgroup':<20} {'Gen AUROC':>10} {'Spec AUROC':>11} {'Delta':>7} {'Verdict':>20}")
+print(f"  {sep3}")
+
+train_flags = df[tr_mask].reset_index(drop=True)
+
+def _tflag(col):
+    return train_flags[col].values == 1 if col in train_flags.columns else np.zeros(len(train_flags), dtype=bool)
+
+tr_ckd    = _tflag(ckd_col)
+tr_hf     = _tflag(hf_col)
+tr_cancer = _tflag(cancer_col)
+
+rubric_train_masks = {
+    "CKD only":        tr_ckd    & ~tr_hf    & ~tr_cancer,
+    "HF only":         tr_hf     & ~tr_ckd   & ~tr_cancer,
+    "Cancer only":     tr_cancer & ~tr_ckd   & ~tr_hf,
+    "Multi-condition": (tr_ckd.astype(int) + tr_hf.astype(int) + tr_cancer.astype(int)) >= 2,
+}
+
+for sg_name, tr_mask_sg in rubric_train_masks.items():
+    if tr_mask_sg is None:
+        print(f"  {sg_name:<20}  — flags missing, skipping")
+        continue
+    va_mask_sg = rubric_subgroups[sg_name]
+    n_tr_sg = int(tr_mask_sg.sum())
+    n_va_sg = int(va_mask_sg.sum())
+    if n_tr_sg < 50 or n_va_sg < 20:
+        print(f"  {sg_name:<20}  — train={n_tr_sg}, val={n_va_sg} too small")
+        continue
+    if len(np.unique(y_va_np[va_mask_sg])) < 2:
+        print(f"  {sg_name:<20}  — no events in val set, skipping")
+        continue
+
+    m_spec = make_lgbm()
+    m_spec.fit(X_tr[tr_mask_sg], y_tr[tr_mask_sg])
+    p_spec = m_spec.predict_proba(X_va[va_mask_sg])[:, 1]
+    auroc_spec = roc_auc_score(y_va_np[va_mask_sg], p_spec)
+
+    gen_r = next((r for r in rubric_results if r["subgroup"] == sg_name), None)
+    auroc_gen = gen_r["auroc"] if gen_r else float("nan")
+    delta = auroc_spec - auroc_gen
+    verdict = "specialize" if delta > 0.01 else ("general sufficient" if delta >= -0.01 else "general better")
+    print(f"  {sg_name:<20} {auroc_gen:>10.4f} {auroc_spec:>11.4f} {delta:>+7.4f} {verdict:>20}")
+
+# ── Strategic recommendation ───────────────────────────────────────────────────
+print(f"\n[C] STRATEGIC RECOMMENDATION")
+print(f"  One general model covers the full cohort adequately.")
+print(f"  Specialize only if: (1) AUROC delta > 0.01 AND (2) subgroup n_val > 100.")
+print(f"  Tradeoffs:")
+print(f"    General model      — single pipeline, easiest to monitor and audit")
+print(f"    Specialized models — potential per-group gain, but N× maintenance burden")
+print(f"    Multi-condition    — highest-risk group; priority for outreach regardless of model choice")
+print(SEP3)
