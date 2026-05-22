@@ -1,24 +1,32 @@
 import * as THREE from 'three'
 
-const RETINA_RADIUS = 2.07
-const CENTER_PULL_MAX = 1.45
-const CENTER_PULL_MIN = 0.12
+const NODE_RADIUS_MAX = 1.86
+const NODE_RADIUS_MIN = 0.08
 
 function clamp(value, min = 0, max = 1) {
   return Math.min(Math.max(value, min), max)
 }
 
-function getRiskColor(riskScore) {
-  const low = new THREE.Color('#22c55e')
-  const mid = new THREE.Color('#f59e0b')
-  const high = new THREE.Color('#ef4444')
+function getNodeSeed(id) {
+  return [...id].reduce((total, character) => total + character.charCodeAt(0), 0)
+}
+
+function getRiskColor(riskScore, seed = 0) {
+  const low = new THREE.Color('#00d8ff')
+  const mid = new THREE.Color('#ffd166')
+  const high = new THREE.Color('#ff2e88')
   const color = new THREE.Color()
+  const hueOffset = ((seed % 7) - 3) * 0.018
 
   if (riskScore < 0.5) {
-    return color.lerpColors(low, mid, riskScore / 0.5)
+    color.lerpColors(low, mid, riskScore / 0.5)
+  } else {
+    color.lerpColors(mid, high, (riskScore - 0.5) / 0.5)
   }
 
-  return color.lerpColors(mid, high, (riskScore - 0.5) / 0.5)
+  color.offsetHSL(hueOffset, 0.08, riskScore > 0.7 ? 0.02 : -0.01)
+
+  return color
 }
 
 export function isWorseningCohort(cohort) {
@@ -32,24 +40,70 @@ export function isWorseningCohort(cohort) {
 }
 
 export function getRetinaNodePosition(cohort) {
-  const burden = clamp(cohort.disease_burden)
-  const source = new THREE.Vector2(cohort.position.x, cohort.position.y)
-  const direction = source.lengthSq() > 0 ? source.normalize() : new THREE.Vector2(1, 0)
-  const centerDistance = CENTER_PULL_MIN + (1 - burden) * CENTER_PULL_MAX
-  const x = direction.x * centerDistance
-  const y = direction.y * centerDistance
-  const z = Math.sqrt(Math.max(RETINA_RADIUS ** 2 - x ** 2 - y ** 2, 0))
+  const burden = clamp(cohort.normalized_disease_burden ?? cohort.disease_burden)
+  const source = new THREE.Vector3(cohort.position.x, cohort.position.y, cohort.position.z)
+  const direction = source.lengthSq() > 0 ? source.normalize() : new THREE.Vector3(1, 0, 0)
+  const centerDistance = NODE_RADIUS_MIN + (1 - burden) * (NODE_RADIUS_MAX - NODE_RADIUS_MIN)
 
-  return new THREE.Vector3(x, y, z)
+  return direction.multiplyScalar(centerDistance)
+}
+
+export function createRetinaNodeConnections(nodes) {
+  const positions = []
+  const colors = []
+
+  nodes.forEach((startNode, startIndex) => {
+    nodes.slice(startIndex + 1).forEach((endNode) => {
+      const startColor = getRiskColor(startNode.userData.riskScore, startNode.userData.seed)
+      const endColor = getRiskColor(endNode.userData.riskScore, endNode.userData.seed)
+
+      positions.push(
+        startNode.position.x,
+        startNode.position.y,
+        startNode.position.z,
+        endNode.position.x,
+        endNode.position.y,
+        endNode.position.z,
+      )
+
+      colors.push(
+        startColor.r,
+        startColor.g,
+        startColor.b,
+        endColor.r,
+        endColor.g,
+        endColor.b,
+      )
+    })
+  })
+
+  const geometry = new THREE.BufferGeometry()
+  geometry.setAttribute('position', new THREE.Float32BufferAttribute(positions, 3))
+  geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3))
+
+  const material = new THREE.LineBasicMaterial({
+    vertexColors: true,
+    transparent: true,
+    opacity: 0.28,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending,
+  })
+
+  const connections = new THREE.LineSegments(geometry, material)
+  connections.name = 'retina-node-connections'
+  connections.renderOrder = 2
+
+  return connections
 }
 
 export function createRetinaNode(cohort) {
   const riskScore = clamp(cohort.model.risk_score)
-  const riskColor = getRiskColor(riskScore)
+  const seed = getNodeSeed(cohort.id)
+  const riskColor = getRiskColor(riskScore, seed)
   const isWorsening = isWorseningCohort(cohort)
   const group = new THREE.Group()
   const radius = 0.055 + riskScore * 0.07
-  const heat = 0.28 + riskScore * 1.2
+  const heat = 0.38 + riskScore * 1.35
 
   group.name = cohort.id
   group.userData = {
@@ -57,6 +111,10 @@ export function createRetinaNode(cohort) {
     isRetinaNode: true,
     isWorsening,
     riskScore,
+    pulseAmplitude: 0.07 + (seed % 5) * 0.025 + (isWorsening ? 0.08 : 0),
+    pulsePhase: (seed % 17) * 0.37,
+    pulseSpeed: 2.3 + (seed % 6) * 0.42 + (isWorsening ? 1.1 : 0),
+    seed,
   }
   group.position.copy(getRetinaNodePosition(cohort))
 
@@ -79,7 +137,7 @@ export function createRetinaNode(cohort) {
     new THREE.MeshBasicMaterial({
       color: riskColor,
       transparent: true,
-      opacity: 0.1 + riskScore * 0.16,
+      opacity: 0.08 + riskScore * 0.12,
       depthWrite: false,
       blending: THREE.AdditiveBlending,
     }),
@@ -96,14 +154,16 @@ export function createRetinaNode(cohort) {
 }
 
 export function updateRetinaNode(node, elapsedTime) {
-  const { halo, isWorsening, riskScore } = node.userData
-  const pulse = isWorsening ? 1 + Math.sin(elapsedTime * 4.5) * 0.16 : 1
-  const heatPulse = 1 + Math.sin(elapsedTime * 3.2) * 0.08 * riskScore
+  const { halo, isWorsening, pulseAmplitude, pulsePhase, pulseSpeed, riskScore } = node.userData
+  const wave = Math.sin(elapsedTime * pulseSpeed + pulsePhase)
+  const pulse = 1 + wave * pulseAmplitude
+  const heatPulse = 1 + Math.sin(elapsedTime * (pulseSpeed * 0.72) + pulsePhase * 1.6) * 0.1 * riskScore
 
   node.scale.setScalar(pulse)
 
   if (halo) {
     halo.scale.setScalar(heatPulse)
-    halo.material.opacity = 0.1 + riskScore * 0.16 + (isWorsening ? (pulse - 1) * 0.28 : 0)
+    halo.material.opacity =
+      0.08 + riskScore * 0.12 + (isWorsening ? Math.max(pulse - 1, 0) * 0.36 : 0)
   }
 }

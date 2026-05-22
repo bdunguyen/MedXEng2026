@@ -206,6 +206,406 @@
           ]
         }
       }
+    },
+
+    {
+      "id": "cohort_5",
+      "name": "Retinal Vein Occlusion",
+      "category": "vascular",
+      "population": 126,
+
+      "disease_burden": 0.88,
+
+      "position": {
+        "x": 0.95,
+        "y": 1.25,
+        "z": -0.55
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.82,
+          "risk_level": "high",
+          "trend": [0.36, 0.44, 0.51, 0.63, 0.74, 0.82],
+          "top_features": [
+            { "feature": "Hypertension Severity", "importance": 0.34 },
+            { "feature": "Prior ER Visits", "importance": 0.27 },
+            { "feature": "Anticoagulant Complexity", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.77,
+          "risk_level": "high",
+          "trend": [0.32, 0.39, 0.48, 0.59, 0.68, 0.77],
+          "top_features": [
+            { "feature": "Prior Admissions", "importance": 0.3 },
+            { "feature": "Blood Pressure Instability", "importance": 0.26 },
+            { "feature": "Age", "importance": 0.19 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.86,
+          "risk_level": "high",
+          "trend": [0.38, 0.47, 0.56, 0.67, 0.78, 0.86],
+          "top_features": [
+            { "feature": "Blood Pressure Instability", "importance": 0.37 },
+            { "feature": "ER Visits", "importance": 0.29 },
+            { "feature": "Medication Complexity", "importance": 0.2 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_6",
+      "name": "Dry Eye Complications",
+      "category": "ocular_surface",
+      "population": 428,
+
+      "disease_burden": 0.29,
+
+      "position": {
+        "x": -1.75,
+        "y": -1.05,
+        "z": -0.35
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.28,
+          "risk_level": "low",
+          "trend": [0.12, 0.14, 0.17, 0.2, 0.24, 0.28],
+          "top_features": [
+            { "feature": "Medication Count", "importance": 0.23 },
+            { "feature": "Environmental Exposure", "importance": 0.2 },
+            { "feature": "Missed Follow-Ups", "importance": 0.16 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.25,
+          "risk_level": "low",
+          "trend": [0.11, 0.13, 0.15, 0.18, 0.22, 0.25],
+          "top_features": [
+            { "feature": "Age", "importance": 0.21 },
+            { "feature": "Medication Count", "importance": 0.19 },
+            { "feature": "Care Gaps", "importance": 0.15 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.31,
+          "risk_level": "low",
+          "trend": [0.13, 0.16, 0.19, 0.22, 0.27, 0.31],
+          "top_features": [
+            { "feature": "Environmental Exposure", "importance": 0.26 },
+            { "feature": "Medication Count", "importance": 0.22 },
+            { "feature": "Care Coordination", "importance": 0.17 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_7",
+      "name": "Uveitis Flare Risk",
+      "category": "inflammatory",
+      "population": 97,
+
+      "disease_burden": 0.71,
+
+      "position": {
+        "x": 1.2,
+        "y": -1.4,
+        "z": 0.9
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.68,
+          "risk_level": "moderate",
+          "trend": [0.24, 0.3, 0.38, 0.47, 0.57, 0.68],
+          "top_features": [
+            { "feature": "Steroid Burden", "importance": 0.31 },
+            { "feature": "Inflammation Markers", "importance": 0.28 },
+            { "feature": "Care Gaps", "importance": 0.17 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.64,
+          "risk_level": "moderate",
+          "trend": [0.22, 0.28, 0.35, 0.44, 0.54, 0.64],
+          "top_features": [
+            { "feature": "Prior Flares", "importance": 0.29 },
+            { "feature": "Medication Adherence", "importance": 0.24 },
+            { "feature": "Age", "importance": 0.16 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.72,
+          "risk_level": "high",
+          "trend": [0.27, 0.34, 0.42, 0.52, 0.63, 0.72],
+          "top_features": [
+            { "feature": "Inflammation Markers", "importance": 0.35 },
+            { "feature": "Steroid Burden", "importance": 0.27 },
+            { "feature": "Missed Follow-Ups", "importance": 0.19 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_8",
+      "name": "Keratoconus Monitoring",
+      "category": "corneal",
+      "population": 138,
+
+      "disease_burden": 0.52,
+
+      "position": {
+        "x": -0.25,
+        "y": 1.85,
+        "z": 1.05
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.48,
+          "risk_level": "low",
+          "trend": [0.2, 0.24, 0.28, 0.34, 0.4, 0.48],
+          "top_features": [
+            { "feature": "Corneal Thickness Change", "importance": 0.3 },
+            { "feature": "Missed Imaging", "importance": 0.23 },
+            { "feature": "Age", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.45,
+          "risk_level": "low",
+          "trend": [0.18, 0.22, 0.26, 0.31, 0.38, 0.45],
+          "top_features": [
+            { "feature": "Prior Progression", "importance": 0.27 },
+            { "feature": "Age", "importance": 0.21 },
+            { "feature": "Follow-Up Delay", "importance": 0.18 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.54,
+          "risk_level": "moderate",
+          "trend": [0.23, 0.28, 0.33, 0.39, 0.47, 0.54],
+          "top_features": [
+            { "feature": "Corneal Thickness Change", "importance": 0.33 },
+            { "feature": "Missed Imaging", "importance": 0.24 },
+            { "feature": "Prior Progression", "importance": 0.2 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_9",
+      "name": "Retinal Detachment History",
+      "category": "retinal",
+      "population": 72,
+
+      "disease_burden": 0.93,
+
+      "position": {
+        "x": -1.1,
+        "y": 0.95,
+        "z": -1.25
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.87,
+          "risk_level": "high",
+          "trend": [0.42, 0.5, 0.59, 0.7, 0.8, 0.87],
+          "top_features": [
+            { "feature": "Prior Surgery", "importance": 0.35 },
+            { "feature": "New Symptoms", "importance": 0.3 },
+            { "feature": "Care Delay", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.81,
+          "risk_level": "high",
+          "trend": [0.38, 0.46, 0.55, 0.65, 0.74, 0.81],
+          "top_features": [
+            { "feature": "Prior Surgery", "importance": 0.31 },
+            { "feature": "Age", "importance": 0.23 },
+            { "feature": "Prior Admissions", "importance": 0.2 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.91,
+          "risk_level": "high",
+          "trend": [0.45, 0.54, 0.64, 0.75, 0.84, 0.91],
+          "top_features": [
+            { "feature": "New Symptoms", "importance": 0.38 },
+            { "feature": "Prior Surgery", "importance": 0.29 },
+            { "feature": "Care Delay", "importance": 0.2 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_10",
+      "name": "Pediatric Amblyopia",
+      "category": "pediatric",
+      "population": 265,
+
+      "disease_burden": 0.36,
+
+      "position": {
+        "x": 1.55,
+        "y": 0.25,
+        "z": 1.45
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.35,
+          "risk_level": "low",
+          "trend": [0.16, 0.18, 0.21, 0.25, 0.3, 0.35],
+          "top_features": [
+            { "feature": "Patch Adherence", "importance": 0.29 },
+            { "feature": "Missed Screenings", "importance": 0.22 },
+            { "feature": "Caregiver Access", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.32,
+          "risk_level": "low",
+          "trend": [0.14, 0.17, 0.19, 0.23, 0.28, 0.32],
+          "top_features": [
+            { "feature": "Age", "importance": 0.24 },
+            { "feature": "Patch Adherence", "importance": 0.22 },
+            { "feature": "Transportation Barriers", "importance": 0.16 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.38,
+          "risk_level": "low",
+          "trend": [0.17, 0.2, 0.23, 0.27, 0.33, 0.38],
+          "top_features": [
+            { "feature": "Missed Screenings", "importance": 0.28 },
+            { "feature": "Patch Adherence", "importance": 0.26 },
+            { "feature": "Caregiver Access", "importance": 0.19 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_11",
+      "name": "Ocular Hypertension",
+      "category": "optic_nerve",
+      "population": 219,
+
+      "disease_burden": 0.58,
+
+      "position": {
+        "x": -1.85,
+        "y": 0.15,
+        "z": 0.45
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.56,
+          "risk_level": "moderate",
+          "trend": [0.2, 0.26, 0.32, 0.39, 0.48, 0.56],
+          "top_features": [
+            { "feature": "Pressure Variability", "importance": 0.32 },
+            { "feature": "Medication Adherence", "importance": 0.24 },
+            { "feature": "Age", "importance": 0.17 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.51,
+          "risk_level": "moderate",
+          "trend": [0.18, 0.23, 0.29, 0.36, 0.44, 0.51],
+          "top_features": [
+            { "feature": "Prior Utilization", "importance": 0.25 },
+            { "feature": "Pressure Variability", "importance": 0.24 },
+            { "feature": "Care Gaps", "importance": 0.2 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.61,
+          "risk_level": "moderate",
+          "trend": [0.22, 0.28, 0.35, 0.43, 0.53, 0.61],
+          "top_features": [
+            { "feature": "Pressure Variability", "importance": 0.34 },
+            { "feature": "Medication Adherence", "importance": 0.25 },
+            { "feature": "Care Gaps", "importance": 0.19 }
+          ]
+        }
+      }
+    },
+
+    {
+      "id": "cohort_12",
+      "name": "Post-Op Infection Watch",
+      "category": "surgical_followup",
+      "population": 84,
+
+      "disease_burden": 0.79,
+
+      "position": {
+        "x": 0.45,
+        "y": -1.85,
+        "z": -1.15
+      },
+
+      "models": {
+        "rf": {
+          "risk_score": 0.74,
+          "risk_level": "high",
+          "trend": [0.3, 0.37, 0.45, 0.55, 0.65, 0.74],
+          "top_features": [
+            { "feature": "Wound Concern", "importance": 0.33 },
+            { "feature": "Missed Post-Op Visit", "importance": 0.28 },
+            { "feature": "Medication Complexity", "importance": 0.18 }
+          ]
+        },
+
+        "logreg": {
+          "risk_score": 0.7,
+          "risk_level": "high",
+          "trend": [0.27, 0.34, 0.42, 0.51, 0.61, 0.7],
+          "top_features": [
+            { "feature": "Prior Admissions", "importance": 0.28 },
+            { "feature": "Missed Post-Op Visit", "importance": 0.25 },
+            { "feature": "Age", "importance": 0.19 }
+          ]
+        },
+
+        "lgbm": {
+          "risk_score": 0.8,
+          "risk_level": "high",
+          "trend": [0.33, 0.41, 0.49, 0.6, 0.71, 0.8],
+          "top_features": [
+            { "feature": "Wound Concern", "importance": 0.36 },
+            { "feature": "Missed Post-Op Visit", "importance": 0.3 },
+            { "feature": "ER Visits", "importance": 0.2 }
+          ]
+        }
+      }
     }
   ]
 }

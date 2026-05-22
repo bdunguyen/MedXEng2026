@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import predictions from '../data/predictions.json'
-import { createRetinaNode, updateRetinaNode } from './Node'
+import { createRetinaNode, createRetinaNodeConnections, updateRetinaNode } from './Node'
 import TrendChart from './TrendChart'
 
 const defaultModel = predictions.metadata.default_model
@@ -13,6 +13,11 @@ const riskColors = {
   low: '#22c55e',
 }
 
+const burdenValues = predictions.cohorts.map((cohort) => cohort.disease_burden)
+const burdenMin = Math.min(...burdenValues)
+const burdenMax = Math.max(...burdenValues)
+const burdenRange = burdenMax - burdenMin || 1
+
 const cohorts = predictions.cohorts.map((cohort) => {
   const model = cohort.models[defaultModel]
 
@@ -20,26 +25,9 @@ const cohorts = predictions.cohorts.map((cohort) => {
     ...cohort,
     model,
     color: riskColors[model.risk_level] ?? '#38bdf8',
+    normalized_disease_burden: (cohort.disease_burden - burdenMin) / burdenRange,
   }
 })
-
-function makeVessel(points, color = '#d94141') {
-  const curve = new THREE.CatmullRomCurve3(points)
-  const geometry = new THREE.TubeGeometry(curve, 48, 0.018, 8, false)
-  const material = new THREE.MeshStandardMaterial({
-    color,
-    roughness: 0.42,
-    metalness: 0.04,
-    emissive: color,
-    emissiveIntensity: 0.16,
-  })
-
-  return new THREE.Mesh(geometry, material)
-}
-
-function toSurfacePoint(x, y, z = 2.05) {
-  return new THREE.Vector3(x, y, z).normalize().multiplyScalar(2.04)
-}
 
 function formatPercent(value) {
   return `${Math.round(value * 100)}%`
@@ -88,81 +76,27 @@ export default function RetinaScene() {
       new THREE.SphereGeometry(2, 96, 96),
       new THREE.MeshPhysicalMaterial({
         color: '#9be7dc',
-        roughness: 0.52,
-        metalness: 0.04,
-        clearcoat: 0.35,
-        transmission: 0.08,
+        roughness: 0.18,
+        metalness: 0.02,
+        clearcoat: 0.6,
+        transmission: 0.45,
         transparent: true,
-        opacity: 0.86,
+        opacity: 0.2,
+        depthWrite: false,
+        side: THREE.DoubleSide,
       }),
     )
+    shell.renderOrder = 1
     retina.add(shell)
-
-    const surface = new THREE.Mesh(
-      new THREE.SphereGeometry(2.012, 96, 96, 0, Math.PI * 2, 0, Math.PI),
-      new THREE.MeshStandardMaterial({
-        color: '#132d2f',
-        emissive: '#123c3e',
-        emissiveIntensity: 0.28,
-        roughness: 0.7,
-        transparent: true,
-        opacity: 0.62,
-      }),
-    )
-    retina.add(surface)
-
-    const macula = new THREE.Mesh(
-      new THREE.CircleGeometry(0.42, 64),
-      new THREE.MeshBasicMaterial({
-        color: '#f7b733',
-        transparent: true,
-        opacity: 0.52,
-        side: THREE.DoubleSide,
-      }),
-    )
-    macula.position.set(0, 0, 2.035)
-    retina.add(macula)
-
-    const opticDisc = new THREE.Mesh(
-      new THREE.CircleGeometry(0.28, 64),
-      new THREE.MeshBasicMaterial({
-        color: '#f8fafc',
-        transparent: true,
-        opacity: 0.68,
-        side: THREE.DoubleSide,
-      }),
-    )
-    opticDisc.position.copy(toSurfacePoint(0.8, -0.35))
-    opticDisc.lookAt(0, 0, 0)
-    retina.add(opticDisc)
-
-    const vesselGroup = new THREE.Group()
-    vesselGroup.add(
-      makeVessel([
-        toSurfacePoint(0.72, -0.32),
-        toSurfacePoint(0.32, 0.08),
-        toSurfacePoint(-0.34, 0.42),
-        toSurfacePoint(-1.12, 0.72),
-      ]),
-      makeVessel([
-        toSurfacePoint(0.76, -0.3),
-        toSurfacePoint(0.22, -0.46),
-        toSurfacePoint(-0.42, -0.62),
-        toSurfacePoint(-1.08, -0.76),
-      ]),
-      makeVessel([
-        toSurfacePoint(0.76, -0.28),
-        toSurfacePoint(1.04, 0.2),
-        toSurfacePoint(1.36, 0.62),
-      ], '#ff6b6b'),
-    )
-    retina.add(vesselGroup)
 
     const retinaNodes = cohorts.map((cohort) => {
       const node = createRetinaNode(cohort)
       retina.add(node)
       return node
     })
+    const nodeConnections = createRetinaNodeConnections(retinaNodes)
+    retina.add(nodeConnections)
+
     const markerMeshes = retinaNodes.flatMap((node) => node.children)
 
     const raycaster = new THREE.Raycaster()
@@ -207,6 +141,7 @@ export default function RetinaScene() {
       frameId = requestAnimationFrame(animate)
       const elapsedTime = clock.getElapsedTime()
       retinaNodes.forEach((node) => updateRetinaNode(node, elapsedTime))
+      nodeConnections.material.opacity = 0.18 + Math.sin(elapsedTime * 1.35) * 0.05
       controls.update()
       renderer.render(scene, camera)
     }
