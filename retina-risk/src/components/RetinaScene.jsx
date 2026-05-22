@@ -179,7 +179,7 @@ export default function RetinaScene() {
       frameId = requestAnimationFrame(animate)
       const elapsedTime = clock.getElapsedTime()
       retinaNodes.forEach((node) => updateRetinaNode(node, elapsedTime))
-      nodeConnections.material.opacity = 0.18 + Math.sin(elapsedTime * 1.35) * 0.05
+      nodeConnections.material.opacity = 0.18 + Math.sin(elapsedTime * 0.5) * 0.05
       controls.update()
       renderer.render(scene, camera)
     }

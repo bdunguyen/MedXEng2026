@@ -122,9 +122,9 @@ export function createRetinaNode(cohort) {
     isRetinaNode: true,
     isWorsening,
     riskScore,
-    pulseAmplitude: 0.07 + (seed % 5) * 0.025 + (isWorsening ? 0.08 : 0),
+    pulseAmplitude: 0.05 + (seed % 5) * 0.018 + (isWorsening ? 0.05 : 0),
     pulsePhase: (seed % 17) * 0.37,
-    pulseSpeed: 2.3 + (seed % 6) * 0.42 + (isWorsening ? 1.1 : 0),
+    pulseSpeed: 0.9 + (seed % 6) * 0.18 + (isWorsening ? 0.4 : 0),
     seed,
   }
   group.position.copy(getRetinaNodePosition(cohort))
