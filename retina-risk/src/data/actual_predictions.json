@@ -1,0 +1,269 @@
+{
+  "metadata": {
+    "project": "VisionWatch",
+    "prediction_target": "12-month ED/inpatient admission risk \u2014 glaucoma & diabetic cohorts",
+    "generated_at": "2026-05-22",
+    "models_available": [
+      "logreg",
+      "rf",
+      "lgbm"
+    ],
+    "default_model": "rf",
+    "validation_n": 1081,
+    "validation_auroc": 0.7265
+  },
+  "cohorts": [
+    {
+      "id": "cohort_glaucoma",
+      "name": "Glaucoma",
+      "category": "optic_nerve",
+      "population": 82,
+      "disease_burden": 0.5,
+      "position": {
+        "x": -1.4,
+        "y": 0.5,
+        "z": 1.2
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.4044,
+          "risk_level": "high",
+          "trend": [
+            0.4078,
+            0.3242,
+            0.4294,
+            0.3883,
+            0.4082,
+            0.7025
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.3988,
+          "risk_level": "high",
+          "trend": [
+            0.4954,
+            0.2722,
+            0.4126,
+            0.3891,
+            0.4147,
+            0.6078
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.1725,
+          "risk_level": "high",
+          "trend": [
+            0.2481,
+            0.0914,
+            0.187,
+            0.1473,
+            0.1346,
+            0.3549
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_diabetic",
+      "name": "Diabetic",
+      "category": "retinal",
+      "population": 937,
+      "disease_burden": 0.5,
+      "position": {
+        "x": 0.3,
+        "y": 0.1,
+        "z": 0.2
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.3884,
+          "risk_level": "high",
+          "trend": [
+            0.3611,
+            0.3602,
+            0.3249,
+            0.3853,
+            0.397,
+            0.3491
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.3777,
+          "risk_level": "high",
+          "trend": [
+            0.3451,
+            0.3645,
+            0.3212,
+            0.384,
+            0.3481,
+            0.3588
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.1762,
+          "risk_level": "high",
+          "trend": [
+            0.1679,
+            0.1801,
+            0.1476,
+            0.1962,
+            0.1517,
+            0.1626
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "cohort_glaucoma_diabetic",
+      "name": "Glaucoma + Diabetic",
+      "category": "retinal",
+      "population": 62,
+      "disease_burden": 0.5,
+      "position": {
+        "x": -0.7,
+        "y": -0.2,
+        "z": 1.7
+      },
+      "models": {
+        "logreg": {
+          "risk_score": 0.3913,
+          "risk_level": "high",
+          "trend": [
+            0.3458,
+            0.2391,
+            0.5517,
+            0.472,
+            0.4184,
+            0.4952
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.478
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.355
+            },
+            {
+              "feature": "DerivedRaceEthnicity_Unknown / Declined",
+              "importance": 0.167
+            }
+          ]
+        },
+        "rf": {
+          "risk_score": 0.393,
+          "risk_level": "high",
+          "trend": [
+            0.3791,
+            0.2023,
+            0.52,
+            0.4808,
+            0.5009,
+            0.4987
+          ],
+          "top_features": [
+            {
+              "feature": "Diagnosis Count (12mo)",
+              "importance": 0.354
+            },
+            {
+              "feature": "Distance to Care",
+              "importance": 0.33
+            },
+            {
+              "feature": "Distance to Care (log)",
+              "importance": 0.315
+            }
+          ]
+        },
+        "lgbm": {
+          "risk_score": 0.1737,
+          "risk_level": "high",
+          "trend": [
+            0.1555,
+            0.0799,
+            0.2915,
+            0.2212,
+            0.2139,
+            0.2498
+          ],
+          "top_features": [
+            {
+              "feature": "N/A",
+              "importance": 0.0
+            }
+          ]
+        }
+      }
+    }
+  ]
+}
