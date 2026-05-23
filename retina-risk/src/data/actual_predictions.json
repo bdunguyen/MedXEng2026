@@ -1,7 +1,7 @@
 {
   "metadata": {
     "project": "VisionWatch",
-    "prediction_target": "12-month ED/inpatient admission risk — glaucoma & diabetic cohorts",
+    "prediction_target": "12-month ED/inpatient admission risk \u2014 glaucoma & diabetic cohorts",
     "generated_at": "2026-05-22",
     "models_available": [
       "logreg",
@@ -44,7 +44,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -70,12 +70,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -106,7 +102,7 @@
       "population": 140,
       "disease_burden": 0.68,
       "auroc": 0.766,
-      "equity_note": "HF prevalence 1.6× higher in Black / African American patients in this dataset. Model performs well (AUROC 0.766); 3.3× top-decile lift makes it highly actionable for outreach.",
+      "equity_note": "HF prevalence 1.6\u00d7 higher in Black / African American patients in this dataset. Model performs well (AUROC 0.766); 3.3\u00d7 top-decile lift makes it highly actionable for outreach.",
       "position": {
         "x": 0.9,
         "y": -0.4,
@@ -130,7 +126,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -147,7 +143,7 @@
             0.38,
             0.42,
             0.44,
-            0.40,
+            0.4,
             0.43
           ],
           "top_features": [
@@ -156,12 +152,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -192,7 +184,7 @@
       "population": 62,
       "disease_burden": 0.72,
       "auroc": 0.74,
-      "equity_note": "Dual-condition group with 25.6% event rate in the full dataset — highest of any primary cohort. Small validation set (n=62); results directionally reliable.",
+      "equity_note": "Dual-condition group with 25.6% event rate in the full dataset \u2014 highest of any primary cohort. Small validation set (n=62); results directionally reliable.",
       "position": {
         "x": -0.7,
         "y": -0.2,
@@ -216,7 +208,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -242,12 +234,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -278,7 +266,7 @@
       "population": 34,
       "disease_burden": 0.62,
       "auroc": 0.849,
-      "equity_note": "Best-predicted subgroup (AUROC 0.849, 5.2× top-decile lift). Small validation cohort (n=34) — a dedicated model overfit; general model is preferred.",
+      "equity_note": "Best-predicted subgroup (AUROC 0.849, 5.2\u00d7 top-decile lift). Small validation cohort (n=34) \u2014 a dedicated model overfit; general model is preferred.",
       "position": {
         "x": 1.2,
         "y": 0.3,
@@ -302,7 +290,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -328,12 +316,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -364,7 +348,7 @@
       "population": 937,
       "disease_burden": 0.55,
       "auroc": 0.74,
-      "equity_note": "Largest cohort (n=937). Patients in the most-deprived neighborhoods (ADI Q5) have a 21% event rate vs. 13.5% in least-deprived — a 1.6× gap driven by access barriers.",
+      "equity_note": "Largest cohort (n=937). Patients in the most-deprived neighborhoods (ADI Q5) have a 21% event rate vs. 13.5% in least-deprived \u2014 a 1.6\u00d7 gap driven by access barriers.",
       "position": {
         "x": 0.3,
         "y": 0.1,
@@ -388,7 +372,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -414,12 +398,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -448,9 +428,9 @@
       "name": "Chronic Kidney Disease",
       "category": "renal",
       "population": 423,
-      "disease_burden": 0.50,
+      "disease_burden": 0.5,
       "auroc": 0.706,
-      "equity_note": "CKD risk strongly associated with neighborhood deprivation. Hardest subgroup to predict (AUROC 0.706) — risk is driven by full clinical context, not kidney disease alone.",
+      "equity_note": "CKD risk strongly associated with neighborhood deprivation. Hardest subgroup to predict (AUROC 0.706) \u2014 risk is driven by full clinical context, not kidney disease alone.",
       "position": {
         "x": -0.3,
         "y": 0.8,
@@ -474,7 +454,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -500,12 +480,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
@@ -536,7 +512,7 @@
       "population": 82,
       "disease_burden": 0.38,
       "auroc": 0.57,
-      "equity_note": "Model struggles with this group (AUROC 0.57 — near random). Only 82 test patients; more data needed before reliable individual-level predictions can be made.",
+      "equity_note": "Model struggles with this group (AUROC 0.57 \u2014 near random). Only 82 test patients; more data needed before reliable individual-level predictions can be made.",
       "position": {
         "x": -1.4,
         "y": 0.5,
@@ -560,7 +536,7 @@
               "importance": 0.478
             },
             {
-              "feature": "Distance to Care (log)",
+              "feature": "Distance to Nearest Clinic",
               "importance": 0.355
             },
             {
@@ -586,12 +562,8 @@
               "importance": 0.354
             },
             {
-              "feature": "Distance to Care",
-              "importance": 0.33
-            },
-            {
-              "feature": "Distance to Care (log)",
-              "importance": 0.315
+              "feature": "Distance to Nearest Clinic",
+              "importance": 0.645
             }
           ]
         },
