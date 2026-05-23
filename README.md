@@ -1,6 +1,6 @@
 # Retina Risk — VisionWatch
 **UC Davis Health Hackathon | May 22, 2026**
-**Team: Leonardo Zavala-Jimenez & Britney Dunguyen**
+**Team: Leonardo Zavala-Jimenez & Britney Nguyen**
 
 Predicting 12-month emergency department and inpatient admission risk for glaucoma and diabetic patients, visualized as an interactive 3D retina.
 
