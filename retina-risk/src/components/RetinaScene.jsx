@@ -3,7 +3,6 @@ import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import actualPredictions from '../data/actual_predictions.json'
 import clusterPredictions from '../data/cluster_predictions.json'
-import demoPredictions from '../data/demo_predictions.json'
 import {
   createRetinaNode,
   createRetinaNodeConnections,
@@ -23,10 +22,6 @@ const datasets = {
   clusters: {
     label: 'Clusters',
     predictions: clusterPredictions,
-  },
-  demo: {
-    label: 'Demo',
-    predictions: demoPredictions,
   },
 }
 
