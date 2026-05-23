@@ -120,7 +120,10 @@ export default function SidePanel({
         </div>
       )}
       <div className="feature-list">
-        <h3>Top model features</h3>
+        <h3>What drives risk</h3>
+        <p className="feature-list-desc">
+          Factors with the most influence on the model&apos;s predictions — higher % means the model relies on it more.
+        </p>
         {selectedCohort.model.top_features.map((item) => (
           <div className="feature-row" key={item.feature}>
             <span>{item.feature}</span>

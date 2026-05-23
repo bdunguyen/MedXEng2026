@@ -224,6 +224,13 @@
   background: rgba(94, 234, 212, 0.06);
 }
 
+.feature-list-desc {
+  margin: -4px 0 6px;
+  color: #6b8886;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
 .node-legend h3,
 .feature-list h3 {
   margin: 0 0 2px;
