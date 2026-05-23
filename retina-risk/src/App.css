@@ -57,23 +57,23 @@
 }
 
 .signature-btns {
-  display: flex;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 6px;
-  flex-wrap: wrap;
+  margin-top: 4px;
 }
 
 .report-btn {
-  margin-top: 4px;
-  padding: 5px 12px;
+  padding: 9px 12px;
   border: 1px solid rgba(94, 234, 212, 0.3);
   border-radius: 6px;
   color: #5eead4;
   background: rgba(94, 234, 212, 0.07);
   font-family: "SFMono-Regular", Consolas, "Liberation Mono", Menlo, monospace;
-  font-size: 12px;
+  font-size: 13px;
   letter-spacing: 0.04em;
   cursor: pointer;
-  width: fit-content;
+  text-align: center;
 }
 
 .report-btn:hover,
